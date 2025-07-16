@@ -21,4 +21,7 @@ urlpatterns = [
     
     # Student Management
     path('courses/<int:course_id>/students/', views.teacher_course_students, name='teacher_course_students'),
+    # Add these to your existing urlpatterns
+    path('courses/<int:course_id>/live-classes/', views.teacher_course_live_classes, name='teacher_course_live_classes'),
+    path('live-classes/<int:class_id>/', views.teacher_live_class_detail, name='teacher_live_class_detail'),
 ]

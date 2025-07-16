@@ -3,24 +3,30 @@
 from rest_framework import serializers
 from courses.models import Course, Video, Quiz, Assignment, Enrollment, Teacher
 from django.contrib.auth.models import User
+from meetings.models import Meeting
 
 
 class TeacherCourseSerializer(serializers.ModelSerializer):
     total_videos = serializers.SerializerMethodField()
     total_enrollments = serializers.SerializerMethodField()
     total_quizzes = serializers.SerializerMethodField()
+    total_live_classes = serializers.SerializerMethodField() 
     
     class Meta:
         model = Course
         fields = [
             'id', 'title', 'description', 'price', 'course_type', 
             'thumbnail', 'created_at', 'is_active', 'total_videos', 
-            'total_enrollments', 'total_quizzes'
+            'total_enrollments', 'total_quizzes''has_live_classes',  
+            'total_live_classes'
         ]
-        read_only_fields = ['id', 'created_at', 'total_videos', 'total_enrollments', 'total_quizzes']
+        read_only_fields = ['id', 'created_at', 'total_videos', 'total_enrollments', 'total_quizzes','total_live_classes']
     
     def get_total_videos(self, obj):
         return obj.videos.count()
+    
+    def get_total_live_classes(self, obj):
+        return obj.get_live_classes().count()
     
     def get_total_enrollments(self, obj):
         return obj.enrollments.count()
@@ -78,3 +84,23 @@ class TeacherAssignmentSerializer(serializers.ModelSerializer):
             'id', 'title', 'description', 'due_date', 'order', 'video'
         ]
         read_only_fields = ['id']
+
+
+class LiveClassSerializer(serializers.ModelSerializer):
+    total_participants = serializers.SerializerMethodField()
+    can_join = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Meeting
+        fields = [
+            'id', 'meeting_id', 'title', 'scheduled_time', 'status',
+            'max_participants', 'total_participants', 'can_join',
+            'is_recorded', 'recording_url', 'created_at'
+        ]
+        read_only_fields = ['id', 'meeting_id', 'total_participants', 'can_join']
+    
+    def get_total_participants(self, obj):
+        return obj.participants.filter(left_at__isnull=True).count()
+    
+    def get_can_join(self, obj):
+        return obj.status in ['waiting', 'active']
