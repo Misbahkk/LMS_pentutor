@@ -8,8 +8,8 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from courses.models import Course, Video, Quiz, Assignment, Enrollment, Teacher
 from courses.serializers import CourseListSerializer, VideoDetailSerializer, QuizSerializer, AssignmentSerializer
-from .serializers import TeacherCourseSerializer, TeacherVideoSerializer, TeacherQuizSerializer, EnrolledStudentSerializer
-
+from .serializers import TeacherCourseSerializer, TeacherVideoSerializer, TeacherQuizSerializer, EnrolledStudentSerializer,LiveClassSerializer
+from meetings.models import Meeting
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -39,6 +39,7 @@ def teacher_dashboard(request):
     total_students = Enrollment.objects.filter(course__teacher=teacher).count()
     total_videos = Video.objects.filter(course__teacher=teacher).count()
     total_quizzes = Quiz.objects.filter(course__teacher=teacher).count()
+    total_live_classes = Meeting.objects.filter(course__teacher=teacher, meeting_type='lecture').count()
     
     # Recent courses
     recent_courses = courses.order_by('-created_at')[:5]
@@ -53,7 +54,8 @@ def teacher_dashboard(request):
                 'active_courses': active_courses,
                 'total_students': total_students,
                 'total_videos': total_videos,
-                'total_quizzes': total_quizzes
+                'total_quizzes': total_quizzes,
+                'total_live_classes': total_live_classes,
             },
             'recent_courses': CourseListSerializer(recent_courses, many=True).data
         }
@@ -414,4 +416,138 @@ def teacher_quiz_detail(request, quiz_id):
         return Response({
             'success': True,
             'message': 'Quiz deleted successfully'
+        }, status=status.HTTP_200_OK)
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def teacher_course_live_classes(request, course_id):
+    """
+    Get course live classes or schedule new live class
+    """
+    if request.user.role != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Access denied. Teacher privileges required.'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+        course = Course.objects.get(id=course_id, teacher=teacher)
+    except Teacher.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Teacher profile not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Course.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Course not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        
+       
+        
+        live_classes = Meeting.objects.filter(
+            course=course, 
+            meeting_type='lecture'
+        ).order_by('-scheduled_time')
+        
+        serializer = LiveClassSerializer(live_classes, many=True)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    elif request.method == 'POST':
+        
+        
+        # Create live class meeting
+        meeting = Meeting.objects.create(
+            host=request.user,
+            course=course,
+            title=request.data.get('title', f'{course.title} - Live Class'),
+            meeting_type='lecture',
+            scheduled_time=request.data.get('scheduled_time'),
+            max_participants=request.data.get('max_participants', 100),
+            is_recorded=request.data.get('is_recorded', False),
+            is_waiting_room_enabled=request.data.get('waiting_room', True)
+        )
+        
+        from .serializers import LiveClassSerializer
+        serializer = LiveClassSerializer(meeting)
+        
+        return Response({
+            'success': True,
+            'message': 'Live class scheduled successfully',
+            'data': serializer.data
+        }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def teacher_live_class_detail(request, class_id):
+    """
+    Get, update or delete specific live class
+    """
+    if request.user.role != 'teacher':
+        return Response({
+            'success': False,
+            'message': 'Access denied. Teacher privileges required.'
+        }, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+
+        live_class = Meeting.objects.get(
+            id=class_id, 
+            course__teacher=teacher,
+            meeting_type='lecture'
+        )
+    except Teacher.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Teacher profile not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Meeting.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Live class not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = LiveClassSerializer(live_class)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    elif request.method == 'PUT':
+        # Update live class details
+        allowed_fields = ['title', 'scheduled_time', 'max_participants', 'is_recorded']
+        for field in allowed_fields:
+            if field in request.data:
+                setattr(live_class, field, request.data[field])
+        
+        live_class.save()
+        
+        from .serializers import LiveClassSerializer
+        serializer = LiveClassSerializer(live_class)
+        return Response({
+            'success': True,
+            'message': 'Live class updated successfully',
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    elif request.method == 'DELETE':
+        if live_class.status == 'active':
+            return Response({
+                'success': False,
+                'message': 'Cannot delete active live class'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        live_class.delete()
+        return Response({
+            'success': True,
+            'message': 'Live class deleted successfully'
         }, status=status.HTTP_200_OK)

@@ -22,6 +22,8 @@ class Course(models.Model):
     description = models.TextField()
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    has_live_classes = models.BooleanField(default=False)
+    live_class_schedule = models.JSONField(default=dict, blank=True)
     course_type = models.CharField(max_length=10, choices=COURSE_TYPES, default='free')
     thumbnail = models.ImageField(upload_to='course_thumbnails/', blank=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -36,6 +38,10 @@ class Course(models.Model):
     def get_total_enrollments(self):
         return self.enrollments.count()
     
+    def get_live_classes(self):
+        from meetings.models import Meeting
+        return Meeting.objects.filter(course=self, meeting_type='lecture')
+
     def has_user_paid(self, user):
 
         if self.course_type == 'free':

@@ -31,7 +31,12 @@ class Meeting(models.Model):
     meeting_type = models.CharField(max_length=20, choices=MEETING_TYPES, default='instant')
     is_active = models.BooleanField(default=True)
     status = models.CharField(max_length=20, choices=MEETING_STATUS, default='waiting')
-    
+    access_type = models.CharField(max_length=20, choices=[
+    ('public', 'Public'),
+    ('private', 'Private'),
+    ('approval_required', 'Approval Required'),
+], default='public')
+    is_password_required = models.BooleanField(default=False)
     # Recording for course lectures
     is_recorded = models.BooleanField(default=False)
     recording_url = models.URLField(blank=True, null=True)
@@ -54,6 +59,13 @@ class Meeting(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.meeting_id:
+            self.meeting_id = str(uuid.uuid4())  # Use UUID instead of formatted string
+        if not self.password:
+            self.password = self.generate_password()
+        super().save(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        if not self.meeting_id:
             self.meeting_id = self.generate_meeting_id()
         if not self.password:
             self.password = self.generate_password()
@@ -71,6 +83,13 @@ class Meeting(models.Model):
     def generate_password():
         return ''.join(random.choices(string.ascii_letters + string.digits, k=6))
     
+
+    def get_enrolled_students(self):
+        """Get students enrolled in course for lecture meetings"""
+        if self.meeting_type == 'lecture' and self.course:
+            return self.course.enrollments.filter(student__role='student')
+        return []
+
     def start_meeting(self):
         self.status = 'active'
         self.started_at = timezone.now()
@@ -213,3 +232,55 @@ class MeetingChat(models.Model):
     
     def __str__(self):
         return f"{self.sender.username}: {self.message[:50]}..."
+    
+# Add after MeetingChat model
+class MeetingInvite(models.Model):
+    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, related_name='invites')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    email = models.EmailField()
+    invited_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_invites')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['meeting', 'email']
+    
+    def __str__(self):
+        return f"Invite to {self.email} for {self.meeting.title}"
+
+
+class JoinRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('denied', 'Denied'),
+    ]
+    
+    meeting = models.ForeignKey(Meeting, on_delete=models.CASCADE, related_name='join_requests')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    guest_name = models.CharField(max_length=100, blank=True)
+    guest_email = models.EmailField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    handled_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_requests')
+    handled_at = models.DateTimeField(null=True, blank=True)
+    
+    @property
+    def display_name(self):
+        if self.user:
+            return self.user.get_full_name() or self.user.username
+        return self.guest_name or self.guest_email
+    
+    def approve(self, handler):
+        self.status = 'approved'
+        self.handled_by = handler
+        self.handled_at = timezone.now()
+        self.save()
+    
+    def deny(self, handler):
+        self.status = 'denied'
+        self.handled_by = handler
+        self.handled_at = timezone.now()
+        self.save()
+    
+    def __str__(self):
+        return f"Join request from {self.display_name} for {self.meeting.title}"
