@@ -1,7 +1,7 @@
 # teacher_dashboard/serializers.py
 
 from rest_framework import serializers
-from courses.models import Course, Video, Quiz, Assignment, Enrollment, Teacher
+from courses.models import Course, Video, Quiz, Assignment, Enrollment, Teacher , Question
 from django.contrib.auth.models import User
 from meetings.models import Meeting
 
@@ -17,7 +17,7 @@ class TeacherCourseSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'price', 'course_type', 
             'thumbnail', 'created_at', 'is_active', 'total_videos', 
-            'total_enrollments', 'total_quizzes''has_live_classes',  
+            'total_enrollments', 'total_quizzes','has_live_classes',  
             'total_live_classes'
         ]
         read_only_fields = ['id', 'created_at', 'total_videos', 'total_enrollments', 'total_quizzes','total_live_classes']
@@ -54,14 +54,29 @@ class TeacherVideoSerializer(serializers.ModelSerializer):
         return obj.assignments.exists()
 
 
+class QuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Question
+        fields = ['id', 'question', 'options', 'correct_answer', 'explanation']
+
+
+
+
 class TeacherQuizSerializer(serializers.ModelSerializer):
+    questions = QuestionSerializer(many=True)
     class Meta:
         model = Quiz
         fields = [
-            'id', 'title', 'description', 'passing_score', 'order', 'video'
+            'id', 'title', 'description', 'passing_score', 'order', 'video', 'questions'
         ]
         read_only_fields = ['id']
 
+    def create(self, validated_data):
+        questions_data = validated_data.pop('questions')
+        quiz = Quiz.objects.create(**validated_data)
+        for question_data in questions_data:
+            Question.objects.create(quiz=quiz, **question_data)
+        return quiz
 
 class EnrolledStudentSerializer(serializers.ModelSerializer):
     # student_username = serializers.CharField(source='student.username', read_only=True)

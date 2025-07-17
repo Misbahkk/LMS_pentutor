@@ -10,6 +10,7 @@ from courses.models import Course, Video, Quiz, Assignment, Enrollment, Teacher
 from courses.serializers import CourseListSerializer, VideoDetailSerializer, QuizSerializer, AssignmentSerializer
 from .serializers import TeacherCourseSerializer, TeacherVideoSerializer, TeacherQuizSerializer, EnrolledStudentSerializer,LiveClassSerializer
 from meetings.models import Meeting
+from django.core.mail import send_mail
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -474,7 +475,23 @@ def teacher_course_live_classes(request, course_id):
             is_waiting_room_enabled=request.data.get('waiting_room', True)
         )
         
-        from .serializers import LiveClassSerializer
+        
+        verified_enrollments = Enrollment.objects.filter( course=course, payment_status='verified')
+
+        # Send invites
+        for enrollment in verified_enrollments:
+            student_email = enrollment.student.email
+            try:
+                send_mail(
+                    subject=f"📢 New Live Class for {course.title}",
+                    message=f"Dear {enrollment.student.get_full_name()},\n\nYou are invited to attend a live class titled '{meeting.title}' scheduled on {meeting.scheduled_time}. Don't miss it!\n\nRegards,\n{teacher.user.get_full_name()}",
+                    from_email='no-reply@lms.com',
+                    recipient_list=[student_email],
+                    fail_silently=True
+                )
+            except Exception as e:
+                print(f"Failed to send invite to {student_email}: {str(e)}")
+
         serializer = LiveClassSerializer(meeting)
         
         return Response({
@@ -531,7 +548,7 @@ def teacher_live_class_detail(request, class_id):
         
         live_class.save()
         
-        from .serializers import LiveClassSerializer
+      
         serializer = LiveClassSerializer(live_class)
         return Response({
             'success': True,

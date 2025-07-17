@@ -82,6 +82,17 @@ class Quiz(models.Model):
     def __str__(self):
         return f"{self.course.title} - {self.title}"
 
+class Question(models.Model):
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='questions')
+    question = models.TextField()
+    options = models.JSONField()
+    correct_answer = models.IntegerField()
+    explanation = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.question[:50]
+
+
 class Assignment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='assignments', null=True, blank=True)
@@ -96,6 +107,7 @@ class Assignment(models.Model):
 class Enrollment(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)  # Student portal k liye baad me use karenge
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
+    # payment_status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('verified', 'Verified')])
     enrolled_at = models.DateTimeField(default=timezone.now)
     is_completed = models.BooleanField(default=False)
     class Meta:
