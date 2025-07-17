@@ -50,7 +50,10 @@ INSTALLED_APPS = [
     'admin_dashboard',
     'payments',
     'meetings',
-    'chat'
+    'chat',
+     "django_celery_beat",
+     "calendersync",
+     'alerts',
 ]
 
 MIDDLEWARE = [

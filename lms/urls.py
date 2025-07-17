@@ -26,4 +26,6 @@ urlpatterns = [
     path('api/teacher/', include('teacher_dashbord.urls')),
     path('api/admin/', include('admin_dashboard.urls')), 
     path('api/students/',include('student_dashboard.urls')),
+    path('api/calendar/', include('calendersync.urls')),
+    path('api/alerts/', include('alerts.urls')),
 ]

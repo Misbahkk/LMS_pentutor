@@ -16,6 +16,7 @@ from authentication.models import User
 from django.utils.text import slugify
 from django.core.mail import send_mail
 from django.conf import settings
+from calendersync.utils import create_google_event
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -28,6 +29,10 @@ def create_meeting(request):
             {'errors': serializer.errors}, 
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+    print("Running create_google_event")
+    create_google_event(request.user, meeting)
+    print("Done create_google_event")
     
     data = serializer.validated_data
     is_password_required = data.get('is_password_required', False)
