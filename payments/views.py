@@ -11,7 +11,7 @@ from .models import Payment
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def initiate_jazzcash(request):
-    meeting_id = request.data.get("meeting_id")
+    course_id = request.data.get("course_id") 
     amount = float(request.data.get("amount", 0))
     user = request.user
 
@@ -21,7 +21,7 @@ def initiate_jazzcash(request):
 
     Payment.objects.create(
         user=user,
-        # meeting=meeting,
+       course_id=course_id,
         amount=amount,
         txn_ref=txn_ref,
         gateway="jazzcash",
@@ -51,7 +51,7 @@ def verify_jazzcash(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def initiate_easypaisa(request):
-    meeting_id = request.data.get("meeting_id")
+    course_id = request.data.get("course_id")
     amount = float(request.data.get("amount", 0))
     user = request.user
 
@@ -61,7 +61,7 @@ def initiate_easypaisa(request):
 
     Payment.objects.create(
         user=user,
-        # meeting=meeting,
+        course_id=course_id,
         amount=amount,
         txn_ref=txn_ref,
         gateway="easypaisa",

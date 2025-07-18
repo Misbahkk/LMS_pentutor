@@ -112,7 +112,7 @@ def student_enrolled_courses(request):
         if course.course_type == 'paid':
             payment = Payment.objects.filter(
                 user=student,
-                meeting_id=course.id,  # Assuming meeting_id maps to course_id
+                course=course.id,  # Assuming meeting_id maps to course_id
                 is_successful=True
             ).first()
             payment_status = 'paid' if payment else 'pending'
@@ -171,7 +171,7 @@ def enroll_in_course(request, course_id):
         if course.course_type == 'paid':
             payment = Payment.objects.filter(
                 user=student,
-                meeting_id=course.id,
+                course=course.id,
                 is_successful=True
             ).first()
             
@@ -450,27 +450,18 @@ def student_payment_history(request):
             'success': False,
             'message': 'Access denied. Student privileges required.'
         }, status=status.HTTP_403_FORBIDDEN)
-    
+
     student = request.user
     payments = Payment.objects.filter(user=student).order_by('-created_at')
-    
+
     payment_data = []
     for payment in payments:
-        # Get course details (assuming meeting_id maps to course_id)
-        try:
-            course = Course.objects.get(id=payment.meeting_id)
-            course_info = {
-                'id': course.id,
-                'title': course.title,
-                'price': float(course.price)
-            }
-        except Course.DoesNotExist:
-            course_info = {
-                'id': payment.meeting_id,
-                'title': 'Course not found',
-                'price': 0
-            }
-        
+        course_info = {
+            'id': payment.course.id if payment.course else None,
+            'title': payment.course.title if payment.course else 'Course not found',
+            'price': float(payment.course.price) if payment.course else 0
+        }
+
         payment_info = {
             'id': payment.id,
             'txn_ref': payment.txn_ref,
@@ -481,14 +472,11 @@ def student_payment_history(request):
             'course': course_info
         }
         payment_data.append(payment_info)
-    
-    # Calculate totals
+
     total_payments = payments.count()
     successful_payments = payments.filter(is_successful=True).count()
-    total_spent = payments.filter(is_successful=True).aggregate(
-        total=Sum('amount')
-    )['total'] or 0
-    
+    total_spent = payments.filter(is_successful=True).aggregate(total=Sum('amount'))['total'] or 0
+
     return Response({
         'success': True,
         'data': {
@@ -501,7 +489,6 @@ def student_payment_history(request):
             'payments': payment_data
         }
     }, status=status.HTTP_200_OK)
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

@@ -7,8 +7,8 @@ RETURN_URL = 'http://localhost:8000/api/payments/jazzcash/verify/'
 POST_URL = 'https://sandbox.jazzcash.com.pk/CustomerPortal/transactionmanagement/merchantform/'
 
 
-def generate_jazzcash_url(user, meeting_id, amount):
-    merchant_id = 'YOUR_MERCHANT_ID'
+def generate_jazzcash_url(user, amount):
+    merchant_id = 'MC199733'
     password = 'YOUR_PASSWORD'
     integrity_salt = 'YOUR_SALT'
     return_url = RETURN_URL
@@ -28,7 +28,7 @@ def generate_jazzcash_url(user, meeting_id, amount):
         'pp_Amount': amount_paisa,
         'pp_TxnDateTime': txn_date,
         'pp_BillReference': 'ZoomClone',
-        'pp_Description': f'Meeting ID: {meeting_id}',
+        # 'pp_Description': f'Meeting ID: {}',
         'pp_ReturnURL': return_url,
     }
 
