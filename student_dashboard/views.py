@@ -490,6 +490,8 @@ def student_payment_history(request):
         }
     }, status=status.HTTP_200_OK)
 
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def available_courses(request):
