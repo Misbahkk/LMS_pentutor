@@ -1,3 +1,5 @@
+# email_automation/signals.py
+
 import logging
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
@@ -26,7 +28,7 @@ def handle_enrollment_created(sender, instance, created, **kwargs):
         logger.info(f"New enrollment created: {instance.student.email} -> {instance.course.title}")
         
         # Trigger enrollment email task
-        send_enrollment_email.delay(
+        send_enrollment_email(
             user_id=instance.student.id,
             course_id=instance.course.id,
             enrollment_id=instance.id
@@ -49,7 +51,7 @@ def handle_payment_success(sender, instance, created, **kwargs):
                     # Payment status changed from unsuccessful to successful
                     logger.info(f"Payment successful: {instance.user.email} -> {instance.course.title}")
                     
-                    send_payment_confirmation_email.delay(
+                    send_payment_confirmation_email(
                         user_id=instance.user.id,
                         payment_id=instance.id
                     )

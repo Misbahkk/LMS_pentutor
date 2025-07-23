@@ -11,6 +11,7 @@ from django.utils import timezone
 from courses.models import Course, Video, Quiz, Assignment, Enrollment, Progress
 from courses.serializers import CourseListSerializer, CourseDetailSerializer
 from payments.models import Payment
+from email_automation.tasks import send_enrollment_email
 
 
 @api_view(['GET'])
@@ -185,6 +186,11 @@ def enroll_in_course(request, course_id):
         enrollment = Enrollment.objects.create(
             student=student,
             course=course
+        )
+        send_enrollment_email(
+            user_id=student.id,
+            course_id=course.id,
+            enrollment_id=enrollment.id
         )
         
         return Response({

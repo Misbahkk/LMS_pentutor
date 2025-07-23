@@ -20,7 +20,7 @@ class EmailService:
     
     def send_email(
         self,
-        recipient: User,
+        recipient: User, # type: ignore
         email_type: str,
         context: Dict[str, Any] = None,
         course=None,

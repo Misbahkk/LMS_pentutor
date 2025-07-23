@@ -1,3 +1,4 @@
+# email_automations/tasks.py
 import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
@@ -86,16 +87,19 @@ def send_payment_confirmation_email(user_id: int, payment_id: int):
         course = payment.course
         
         if not payment.is_successful:
+            print("email is not send")
             logger.info(f"Payment {payment.id} is not successful, skipping email")
             return False
         
         email_service = EmailService()
+        print("actully send")
         success = email_service.send_email(
             recipient=user,
             email_type='payment_confirmation',
             course=course,
             payment=payment
         )
+        print("last send")
         
         logger.info(f"Payment confirmation email sent to {user.email} for course {course.title}: {success}")
         return success
@@ -309,7 +313,7 @@ def cleanup_old_email_logs():
         return 0
 
 
-def calculate_weekly_progress(user: User, course: Course, week_start: datetime.date, week_end: datetime.date) -> Dict[str, Any]:
+def calculate_weekly_progress(user: User, course: Course, week_start: datetime.date, week_end: datetime.date) -> Dict[str, Any]: # type: ignore
     """
     Calculate weekly progress for a user in a course
     """
