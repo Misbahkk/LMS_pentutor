@@ -7,6 +7,7 @@ from .redis_client import redis_client
 from .models import Alert
 from meetings.models import Meeting  
 from django.contrib.auth import get_user_model
+from .utils import send_live_alert
 
 User = get_user_model()
 
@@ -29,25 +30,17 @@ def check_inactive_students():
                 continue
 
             if timezone.now() - last_seen > timedelta(minutes=3):
+                # ✅ Create alert with real user instance
                 Alert.objects.create(
-                    user=meeting.host,
+                    user=meeting.host,  # ✅ host is a real user instance
                     type="inactivity",
                     message=f"{user.username} has been inactive for 3+ minutes",
                     meeting=meeting
                 )
 
-
-from .utils import send_live_alert
-
-Alert.objects.create(
-    user=meeting.host,
-    type="inactivity",
-    message=f"{user.username} has been inactive for 3+ minutes",
-    meeting=meeting
-)
-
-send_live_alert(
-    user_id=meeting.host.id,
-    message=f"{user.username} has been inactive for 3+ minutes",
-    alert_type="inactivity"
-)
+                # ✅ Send alert to host
+                send_live_alert(
+                    user_id=meeting.host.id,
+                    message=f"{user.username} has been inactive for 3+ minutes",
+                    alert_type="inactivity"
+                )

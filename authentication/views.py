@@ -70,7 +70,7 @@ class UserRegistrationView(APIView):
         '''
         
         try:
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+            send_mail(subject, message, settings.EMAIL_HOST_USER, [user.email])
         except Exception as e:
             print(f"Email sending failed: {e}")
 
