@@ -54,6 +54,7 @@ INSTALLED_APPS = [
      "django_celery_beat",
      "calendersync",
      'alerts',
+     'email_automation',
 ]
 
 MIDDLEWARE = [
@@ -124,6 +125,10 @@ SIMPLE_JWT = {
 }
 
 # Email Configuration
+# For development - emails will be printed to console
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# For production - uncomment and configure these settings
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 # EMAIL_HOST = 'smtp.gmail.com'
 # EMAIL_PORT = 587
@@ -131,7 +136,19 @@ SIMPLE_JWT = {
 # EMAIL_HOST_USER = 'your-email@gmail.com'
 # EMAIL_HOST_PASSWORD = 'your-app-password'
 # DEFAULT_FROM_EMAIL = 'your-email@gmail.com'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Email automation settings
+DEFAULT_FROM_EMAIL = 'noreply@lms.com'
+SITE_NAME = 'LMS Platform'
+SITE_URL = 'http://localhost:8000'
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
 
 # Password validation
