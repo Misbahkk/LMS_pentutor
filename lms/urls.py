@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/students/',include('student_dashboard.urls')),
     path('api/calendar/', include('calendersync.urls')),
     path('api/alerts/', include('alerts.urls')),
+    path('', include('email_automation.urls')),
 ]
