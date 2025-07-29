@@ -29,4 +29,5 @@ urlpatterns = [
     path('api/calendar/', include('calendersync.urls')),
     path('api/alerts/', include('alerts.urls')),
     path('', include('email_automation.urls')),
+    path('api/feedback/',include('support_feedback.urls')),
 ]

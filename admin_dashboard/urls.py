@@ -22,4 +22,12 @@ urlpatterns = [
     # Payment Management
     path('payments/', views.admin_course_payments, name='admin_course_payments'),
     path('payments/<int:payment_id>/verify/', views.admin_verify_payment, name='admin_verify_payment'),
+
+    # support tickets
+    path('admin/tickets/', views.AdminSupportTicketListView.as_view(), name='admin-tickets'),
+    path('admin/tickets/<int:pk>/', views.AdminSupportTicketDetailView.as_view(), name='admin-ticket-detail'),
+    path('admin/tickets/<int:ticket_id>/reply/', views.admin_reply_ticket, name='admin-ticket-reply'),
+    path('admin/course-feedback/', views.AdminCourseFeedbackListView.as_view(), name='admin-course-feedback'),
+    path('admin/teacher-feedback/', views.AdminTeacherFeedbackListView.as_view(), name='admin-teacher-feedback'),
+
 ]
