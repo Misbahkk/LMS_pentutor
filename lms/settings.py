@@ -54,6 +54,7 @@ INSTALLED_APPS = [
      "django_celery_beat",
      "calendersync",
      'alerts',
+     'notifications',
      'email_automation',
      'support_feedback',
      
