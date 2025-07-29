@@ -55,6 +55,7 @@ INSTALLED_APPS = [
      "calendersync",
      'alerts',
      'email_automation',
+     'support_feedback',
      
 ]
 

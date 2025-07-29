@@ -1,6 +1,6 @@
 # admin_dashboard/views.py
 
-from rest_framework import status
+from rest_framework import status, permissions, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -470,3 +470,51 @@ def admin_user_detail(request, user_id):
             'success': False,
             'message': 'User not found'
         }, status=status.HTTP_404_NOT_FOUND)
+    
+
+
+
+
+
+
+
+# support_feedback/views.py
+from support_feedback.models import SupportTicket, CourseFeedback, TeacherFeedback
+from support_feedback.serializers import (
+    SupportTicketSerializer,
+    CourseFeedbackSerializer, TeacherFeedbackSerializer,
+     TicketReplyCreateSerializer
+)
+    
+# Admin Views (for admin dashboard app)
+class AdminSupportTicketListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = SupportTicketSerializer
+    queryset = SupportTicket.objects.all()
+
+class AdminSupportTicketDetailView(generics.RetrieveUpdateAPIView):
+    permission_classes = [permissions.IsAdminUser] 
+    serializer_class = SupportTicketSerializer
+    queryset = SupportTicket.objects.all()
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAdminUser])
+def admin_reply_ticket(request, ticket_id):
+    ticket = get_object_or_404(SupportTicket, id=ticket_id)
+    serializer = TicketReplyCreateSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        serializer.save(ticket=ticket, user=request.user, is_admin_reply=True)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AdminCourseFeedbackListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = CourseFeedbackSerializer
+    queryset = CourseFeedback.objects.all()
+
+class AdminTeacherFeedbackListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = TeacherFeedbackSerializer  
+    queryset = TeacherFeedback.objects.all()
