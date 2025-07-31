@@ -3,7 +3,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
-from courses.models import Teacher, Studentprofile 
+from .models import TeacherProfile, StudentProfile 
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -12,7 +12,7 @@ def create_user_profile(sender, instance, created, **kwargs):
     """
     if created:
         if instance.role == 'teacher':
-            Teacher.objects.create(user=instance)
+            TeacherProfile.objects.create(user=instance)
         elif instance.role == 'student':
             StudentProfile.objects.create(user=instance)
 
@@ -23,7 +23,7 @@ def save_user_profile(sender, instance, **kwargs):
     Save the profile when user is saved (if exists)
     """
     if instance.role == 'teacher':
-        teacher, created = Teacher.objects.get_or_create(user=instance)
+        teacher, created = TeacherProfile.objects.get_or_create(user=instance)
         teacher.save()
     elif instance.role == 'student':
         student, created = StudentProfile.objects.get_or_create(user=instance)
