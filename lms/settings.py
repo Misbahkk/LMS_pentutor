@@ -137,7 +137,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'misbahyousaf00@gmail.com'
-EMAIL_HOST_PASSWORD = 'password saved'
+EMAIL_HOST_PASSWORD = 'nura rjdc mucc nrls'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Email automation settings
@@ -146,12 +146,15 @@ SITE_NAME = 'LMS Platform'
 SITE_URL = 'http://localhost:8000'
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+# Add this in settings.py:
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
 
 
 # Password validation
