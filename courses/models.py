@@ -107,7 +107,7 @@ class Assignment(models.Model):
 class Enrollment(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE)  # Student portal k liye baad me use karenge
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
-    # payment_status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('verified', 'Verified')])
+    payment_status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('verified', 'Verified')], null=True,blank=True)
     enrolled_at = models.DateTimeField(default=timezone.now)
     is_completed = models.BooleanField(default=False)
     class Meta:

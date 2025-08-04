@@ -12,8 +12,8 @@ urlpatterns = [
     path('<str:meeting_id>/participants/', views.get_meeting_participants, name='meeting_participants'),
     
     # Access Control & Invitations
-    path('<str:meeting_id>/invites/', views.send_invites, name='send_invites'),
-    path('<str:meeting_id>/join-requests/', views.get_join_requests, name='get_join_requests'),
-    path('<str:meeting_id>/handle-request/', views.handle_join_request, name='handle_join_request'),
-    path('<str:meeting_id>/request-status/<int:request_id>/', views.check_join_request_status, name='check_join_request_status'),
+    # path('<str:meeting_id>/invites/', views.send_invites, name='send_invites'),
+    # path('<str:meeting_id>/join-requests/', views.get_join_requests, name='get_join_requests'),
+    # path('<str:meeting_id>/handle-request/', views.handle_join_request, name='handle_join_request'),
+    # path('<str:meeting_id>/request-status/<int:request_id>/', views.check_join_request_status, name='check_join_request_status'),
 ]
