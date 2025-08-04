@@ -11,6 +11,7 @@ from courses.serializers import CourseListSerializer, VideoDetailSerializer, Qui
 from .serializers import TeacherCourseSerializer, TeacherVideoSerializer, TeacherQuizSerializer, EnrolledStudentSerializer,LiveClassSerializer
 from meetings.models import Meeting
 from django.core.mail import send_mail
+from datetime import datetime
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -459,17 +460,25 @@ def teacher_course_live_classes(request, course_id):
             'success': True,
             'data': serializer.data
         }, status=status.HTTP_200_OK)
-    
+
+
     elif request.method == 'POST':
-        
-        
+        scheduled_time_str = request.data.get('scheduled_time')
+        try:
+            scheduled_time = datetime.fromisoformat(scheduled_time_str)
+        except ValueError:
+            return Response({
+                'success': False,
+                'message': 'Invalid datetime format. Expected ISO format (YYYY-MM-DDTHH:MM[:SS])'
+            }, status=status.HTTP_400_BAD_REQUEST)
+                
         # Create live class meeting
         meeting = Meeting.objects.create(
             host=request.user,
             course=course,
             title=request.data.get('title', f'{course.title} - Live Class'),
             meeting_type='lecture',
-            scheduled_time=request.data.get('scheduled_time'),
+            scheduled_time=scheduled_time,
             max_participants=request.data.get('max_participants', 100),
             is_recorded=request.data.get('is_recorded', False),
             is_waiting_room_enabled=request.data.get('waiting_room', True)

@@ -5,8 +5,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .serializers import (
     MeetingSerializer, ParticipantSerializer, CreateMeetingSerializer,
-    JoinMeetingSerializer, SendInviteSerializer, HandleJoinRequestSerializer,
-    JoinRequestSerializer, MeetingInviteSerializer
+    JoinMeetingSerializer, 
+    # SendInviteSerializer, HandleJoinRequestSerializer,
+    # JoinRequestSerializer, MeetingInviteSerializer
 )
 from .models import Meeting, Participant, MeetingInvite, JoinRequest
 from channels.layers import get_channel_layer
@@ -247,168 +248,168 @@ def join_meeting(request, meeting_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def handle_join_request(request, meeting_id):
-    """Approve or deny join requests (host/co-host only)"""
-    serializer = HandleJoinRequestSerializer(data=request.data)
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def handle_join_request(request, meeting_id):
+#     """Approve or deny join requests (host/co-host only)"""
+#     serializer = HandleJoinRequestSerializer(data=request.data)
     
-    if not serializer.is_valid():
-        return Response(
-            {'errors': serializer.errors},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+#     if not serializer.is_valid():
+#         return Response(
+#             {'errors': serializer.errors},
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
     
-    try:
-        meeting = Meeting.objects.get(meeting_id=meeting_id)
+#     try:
+#         meeting = Meeting.objects.get(meeting_id=meeting_id)
         
-        # Check if user is host or co-host
-        participant = Participant.objects.get(
-            meeting=meeting,
-            user=request.user,
-            role__in=['host', 'co_host'],
-            left_at__isnull=True
-        )
+#         # Check if user is host or co-host
+#         participant = Participant.objects.get(
+#             meeting=meeting,
+#             user=request.user,
+#             role__in=['host', 'co_host'],
+#             left_at__isnull=True
+#         )
         
-        request_id = serializer.validated_data['request_id']
-        action = serializer.validated_data['action']
+#         request_id = serializer.validated_data['request_id']
+#         action = serializer.validated_data['action']
         
-        join_request = JoinRequest.objects.get(
-            id=request_id,
-            meeting=meeting,
-            status='pending'
-        )
+#         join_request = JoinRequest.objects.get(
+#             id=request_id,
+#             meeting=meeting,
+#             status='pending'
+#         )
         
-        if action == 'approve':
-            join_request.approve(request.user)
+#         if action == 'approve':
+#             join_request.approve(request.user)
             
-            # Notify the requester
-            notify_join_request_response(join_request, 'approved')
+#             # Notify the requester
+#             notify_join_request_response(join_request, 'approved')
             
-            message = f"Join request from {join_request.display_name} approved"
+#             message = f"Join request from {join_request.display_name} approved"
         
-        else:  # deny
-            join_request.deny(request.user)
+#         else:  # deny
+#             join_request.deny(request.user)
             
-            # Notify the requester
-            notify_join_request_response(join_request, 'denied')
+#             # Notify the requester
+#             notify_join_request_response(join_request, 'denied')
             
-            message = f"Join request from {join_request.display_name} denied"
+#             message = f"Join request from {join_request.display_name} denied"
         
-        return Response({
-            'message': message,
-            'request': JoinRequestSerializer(join_request).data
-        }, status=status.HTTP_200_OK)
+#         return Response({
+#             'message': message,
+#             'request': JoinRequestSerializer(join_request).data
+#         }, status=status.HTTP_200_OK)
         
-    except Meeting.DoesNotExist:
-        return Response({
-            'error': 'Meeting not found'
-        }, status=status.HTTP_404_NOT_FOUND)
+#     except Meeting.DoesNotExist:
+#         return Response({
+#             'error': 'Meeting not found'
+#         }, status=status.HTTP_404_NOT_FOUND)
     
-    except Participant.DoesNotExist:
-        return Response({
-            'error': 'Only host or co-host can handle join requests'
-        }, status=status.HTTP_403_FORBIDDEN)
+#     except Participant.DoesNotExist:
+#         return Response({
+#             'error': 'Only host or co-host can handle join requests'
+#         }, status=status.HTTP_403_FORBIDDEN)
     
-    except JoinRequest.DoesNotExist:
-        return Response({
-            'error': 'Join request not found'
-        }, status=status.HTTP_404_NOT_FOUND)
+#     except JoinRequest.DoesNotExist:
+#         return Response({
+#             'error': 'Join request not found'
+#         }, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def get_join_requests(request, meeting_id):
-    """Get pending join requests for a meeting (host/co-host only)"""
-    try:
-        meeting = Meeting.objects.get(meeting_id=meeting_id)
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def get_join_requests(request, meeting_id):
+#     """Get pending join requests for a meeting (host/co-host only)"""
+#     try:
+#         meeting = Meeting.objects.get(meeting_id=meeting_id)
         
-        # Check if user is host or co-host
-        participant = Participant.objects.get(
-            meeting=meeting,
-            user=request.user,
-            role__in=['host', 'co_host'],
-            left_at__isnull=True
-        )
+#         # Check if user is host or co-host
+#         participant = Participant.objects.get(
+#             meeting=meeting,
+#             user=request.user,
+#             role__in=['host', 'co_host'],
+#             left_at__isnull=True
+#         )
         
-        pending_requests = meeting.join_requests.filter(status='pending')
+#         pending_requests = meeting.join_requests.filter(status='pending')
         
-        return Response({
-            'requests': JoinRequestSerializer(pending_requests, many=True).data
-        }, status=status.HTTP_200_OK)
+#         return Response({
+#             'requests': JoinRequestSerializer(pending_requests, many=True).data
+#         }, status=status.HTTP_200_OK)
         
-    except Meeting.DoesNotExist:
-        return Response({
-            'error': 'Meeting not found'
-        }, status=status.HTTP_404_NOT_FOUND)
+#     except Meeting.DoesNotExist:
+#         return Response({
+#             'error': 'Meeting not found'
+#         }, status=status.HTTP_404_NOT_FOUND)
     
-    except Participant.DoesNotExist:
-        return Response({
-            'error': 'Only host or co-host can view join requests'
-        }, status=status.HTTP_403_FORBIDDEN)
+#     except Participant.DoesNotExist:
+#         return Response({
+#             'error': 'Only host or co-host can view join requests'
+#         }, status=status.HTTP_403_FORBIDDEN)
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def send_invites(request, meeting_id):
-    """Send invites to additional participants"""
-    serializer = SendInviteSerializer(data=request.data)
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+# def send_invites(request, meeting_id):
+#     """Send invites to additional participants"""
+#     serializer = SendInviteSerializer(data=request.data)
     
-    if not serializer.is_valid():
-        return Response(
-            {'errors': serializer.errors},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+#     if not serializer.is_valid():
+#         return Response(
+#             {'errors': serializer.errors},
+#             status=status.HTTP_400_BAD_REQUEST
+#         )
     
-    try:
-        meeting = Meeting.objects.get(meeting_id=meeting_id)
+#     try:
+#         meeting = Meeting.objects.get(meeting_id=meeting_id)
         
-        # Check if user is host or co-host
-        participant = Participant.objects.get(
-            meeting=meeting,
-            user=request.user,
-            role__in=['host', 'co_host'],
-            left_at__isnull=True
-        )
+#         # Check if user is host or co-host
+#         participant = Participant.objects.get(
+#             meeting=meeting,
+#             user=request.user,
+#             role__in=['host', 'co_host'],
+#             left_at__isnull=True
+#         )
         
-        emails = serializer.validated_data['emails']
-        created_invites = []
+#         emails = serializer.validated_data['emails']
+#         created_invites = []
         
-        for email in emails:
-            invite, created = MeetingInvite.objects.get_or_create(
-                meeting=meeting,
-                email=email,
-                defaults={'invited_by': request.user}
-            )
+#         for email in emails:
+#             invite, created = MeetingInvite.objects.get_or_create(
+#                 meeting=meeting,
+#                 email=email,
+#                 defaults={'invited_by': request.user}
+#             )
             
-            if created:
-                # Try to link to existing user
-                try:
-                    user = User.objects.get(email=email)
-                    invite.user = user
-                    invite.save()
-                except User.DoesNotExist:
-                    pass
+#             if created:
+#                 # Try to link to existing user
+#                 try:
+#                     user = User.objects.get(email=email)
+#                     invite.user = user
+#                     invite.save()
+#                 except User.DoesNotExist:
+#                     pass
                 
-                created_invites.append(invite)
+#                 created_invites.append(invite)
                 
-                # Send email invitation (implement as needed)
-                send_meeting_invitation(invite)
+#                 # Send email invitation (implement as needed)
+#                 send_meeting_invitation(invite)
         
-        return Response({
-            'message': f'Sent {len(created_invites)} new invitations',
-            'invites': MeetingInviteSerializer(created_invites, many=True).data
-        }, status=status.HTTP_200_OK)
+#         return Response({
+#             'message': f'Sent {len(created_invites)} new invitations',
+#             'invites': MeetingInviteSerializer(created_invites, many=True).data
+#         }, status=status.HTTP_200_OK)
         
-    except Meeting.DoesNotExist:
-        return Response({
-            'error': 'Meeting not found'
-        }, status=status.HTTP_404_NOT_FOUND)
+#     except Meeting.DoesNotExist:
+#         return Response({
+#             'error': 'Meeting not found'
+#         }, status=status.HTTP_404_NOT_FOUND)
     
-    except Participant.DoesNotExist:
-        return Response({
-            'error': 'Only host or co-host can send invites'
-        }, status=status.HTTP_403_FORBIDDEN)
+#     except Participant.DoesNotExist:
+#         return Response({
+#             'error': 'Only host or co-host can send invites'
+#         }, status=status.HTTP_403_FORBIDDEN)
 
 
 # Keep existing views with minor modifications
@@ -517,25 +518,25 @@ def get_meeting_participants(request, meeting_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
-@api_view(['GET'])
-@permission_classes([])
-def check_join_request_status(request, meeting_id, request_id):
-    """Check status of join request (for polling)"""
-    try:
-        join_request = JoinRequest.objects.get(
-            id=request_id,
-            meeting__meeting_id=meeting_id
-        )
+# @api_view(['GET'])
+# @permission_classes([])
+# def check_join_request_status(request, meeting_id, request_id):
+#     """Check status of join request (for polling)"""
+#     try:
+#         join_request = JoinRequest.objects.get(
+#             id=request_id,
+#             meeting__meeting_id=meeting_id
+#         )
         
-        return Response({
-            'status': join_request.status,
-            'request': JoinRequestSerializer(join_request).data
-        }, status=status.HTTP_200_OK)
+#         return Response({
+#             'status': join_request.status,
+#             'request': JoinRequestSerializer(join_request).data
+#         }, status=status.HTTP_200_OK)
         
-    except JoinRequest.DoesNotExist:
-        return Response({
-            'error': 'Join request not found'
-        }, status=status.HTTP_404_NOT_FOUND)
+#     except JoinRequest.DoesNotExist:
+#         return Response({
+#             'error': 'Join request not found'
+#         }, status=status.HTTP_404_NOT_FOUND)
 
 
 # Helper functions
