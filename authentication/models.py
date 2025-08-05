@@ -3,6 +3,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 import uuid
+from django.conf import settings
 
 class User(AbstractUser):
     USER_ROLES = [
@@ -36,8 +37,8 @@ class User(AbstractUser):
 
 
 class StudentProfile(models.Model):
-    user = models.OneToOneField('User', on_delete=models.CASCADE, related_name='student_profile')
-
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='student_profile')
+    email = models.EmailField(unique=True, null=True,blank=True)
     # Personal Information
     full_name = models.CharField(max_length=100)
     age = models.PositiveIntegerField(null=True, blank=True)
@@ -68,8 +69,8 @@ class StudentProfile(models.Model):
 
 
 class TeacherProfile(models.Model):
-    user = models.OneToOneField('User', on_delete=models.CASCADE, related_name='teacher_profile')
-
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='teacher_profile')
+    email = models.EmailField(unique=True, null=True,blank=True)
     # Personal Information
     full_name = models.CharField(max_length=100)
     age = models.PositiveIntegerField(null=True, blank=True)

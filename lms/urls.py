@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,4 +32,11 @@ urlpatterns = [
     path('api/notifications/', include('notifications.urls')),
     path('', include('email_automation.urls')),
     path('api/feedback/',include('support_feedback.urls')),
+    path('api/job-board/', include('job_portal.urls')),
 ]
+
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

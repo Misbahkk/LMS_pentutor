@@ -21,7 +21,7 @@ User = get_user_model()
 
 logger = logging.getLogger(__name__)
 
-user = User.objects.first()
+# user = User.objects.first()
 
 import os
 

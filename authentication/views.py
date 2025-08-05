@@ -59,6 +59,7 @@ class UserRegistrationView(APIView):
         Hi {user.username},
         
         Thank you for registering with our LMS platform!
+        Your Role is {user.role}
         
         Please click the following link to verify your email:
         http://localhost:8000/api/auth/verify-email/{token}/

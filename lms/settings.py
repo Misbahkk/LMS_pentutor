@@ -56,6 +56,7 @@ INSTALLED_APPS = [
      'alerts',
      'notifications',
      'email_automation',
+     'job_portal',
      'support_feedback',
      
 ]
@@ -109,7 +110,33 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
+    ],
 }
+
+
+# Media files configuration
+import os
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 
 # JWT Configuration
 SIMPLE_JWT = {
@@ -137,13 +164,24 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'misbahyousaf00@gmail.com'
-EMAIL_HOST_PASSWORD = 'nura rjdc mucc nrls'
+EMAIL_HOST_PASSWORD = 'xiio vtop aqud hsaw'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # Email automation settings
 DEFAULT_FROM_EMAIL = 'noreply@lms.com'
 SITE_NAME = 'LMS Platform'
 SITE_URL = 'http://localhost:8000'
+
+# Job Board specific settings
+JOB_BOARD_SETTINGS = {
+    'DEFAULT_JOB_EXPIRY_DAYS': 30,
+    'MAX_APPLICATIONS_PER_JOB': 100,
+    'ALLOW_ANONYMOUS_JOB_VIEW': True,
+    'REQUIRE_ADMIN_APPROVAL': False,  # Set to True if you want admin approval for jobs
+    'EMAIL_NOTIFICATIONS': True,
+    'JOB_ALERT_BATCH_SIZE': 50,
+}
+
 
 # Celery Configuration
 # CELERY_BROKER_URL = 'redis://localhost:6379/0'
