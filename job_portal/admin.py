@@ -145,7 +145,7 @@ class JobAdmin(admin.ModelAdmin):
     )
     
     def company_name(self, obj):
-        return obj.employer.company_name
+        return getattr(obj.employer, 'company_name', 'N/A')
     company_name.short_description = 'Company'
     
     def employer_link(self, obj):
@@ -205,7 +205,8 @@ class JobApplicationAdmin(admin.ModelAdmin):
     job_title.short_description = 'Job'
     
     def company_name(self, obj):
-        return obj.job.employer.company_name
+        employer = getattr(obj.job, 'employer', None)
+        return getattr(employer, 'company_name', 'N/A') if employer else 'N/A'
     company_name.short_description = 'Company'
     
     def job_link(self, obj):
@@ -253,7 +254,8 @@ class SavedJobAdmin(admin.ModelAdmin):
     job_title.short_description = 'Job'
     
     def company_name(self, obj):
-        return obj.job.employer.company_name
+        employer = getattr(obj.job, 'employer', None)
+        return getattr(employer, 'company_name', 'N/A') if employer else 'N/A'
     company_name.short_description = 'Company'
 
 @admin.register(JobAlert)
@@ -279,7 +281,8 @@ class JobViewAdmin(admin.ModelAdmin):
     job_title.short_description = 'Job'
     
     def company_name(self, obj):
-        return obj.job.employer.company_name
+        employer = getattr(obj.job, 'employer', None)
+        return getattr(employer, 'company_name', 'N/A') if employer else 'N/A'
     company_name.short_description = 'Company'
     
     def user_name(self, obj):

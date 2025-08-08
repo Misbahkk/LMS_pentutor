@@ -1,3 +1,4 @@
+# serializer.py
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -5,6 +6,7 @@ from .models import (
     JobCategory, Skill, EmployerProfile, JobSeekerProfile, 
     Job, JobApplication, SavedJob, JobAlert, JobView
 )
+from authentication.serializers import UserSerializer
 
 class SkillSerializer(serializers.ModelSerializer):
     class Meta:
@@ -96,7 +98,7 @@ class JobListSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             try:
-                job_seeker = request.user.jobseeker_profile
+                job_seeker = request.user
                 return SavedJob.objects.filter(job_seeker=job_seeker, job=obj).exists()
             except:
                 return False
@@ -106,14 +108,14 @@ class JobListSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             try:
-                job_seeker = request.user.jobseeker_profile
+                job_seeker = request.user
                 return JobApplication.objects.filter(applicant=job_seeker, job=obj).exists()
             except:
                 return False
         return False
 
 class JobDetailSerializer(serializers.ModelSerializer):
-    employer = EmployerProfileSerializer(read_only=True)
+    employer = UserSerializer(read_only=True)
     category = JobCategorySerializer(read_only=True)
     required_skills = SkillSerializer(many=True, read_only=True)
     applications_count = serializers.ReadOnlyField()
@@ -137,7 +139,7 @@ class JobDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             try:
-                job_seeker = request.user.jobseeker_profile
+                job_seeker = request.user
                 return SavedJob.objects.filter(job_seeker=job_seeker, job=obj).exists()
             except:
                 return False
@@ -147,7 +149,7 @@ class JobDetailSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             try:
-                job_seeker = request.user.jobseeker_profile
+                job_seeker = request.user
                 return JobApplication.objects.filter(applicant=job_seeker, job=obj).exists()
             except:
                 return False
@@ -190,7 +192,7 @@ class JobCreateUpdateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         skill_ids = validated_data.pop('required_skill_ids', [])
-        employer = self.context['request'].user.employer_profile
+        employer = self.context['request'].user
         
         job = Job.objects.create(employer=employer, **validated_data)
         
@@ -245,7 +247,7 @@ class JobApplicationCreateSerializer(serializers.ModelSerializer):
         return value
     
     def create(self, validated_data):
-        applicant = self.context['request'].user.jobseeker_profile
+        applicant = self.context['request'].user
         return JobApplication.objects.create(applicant=applicant, **validated_data)
 
 class SavedJobSerializer(serializers.ModelSerializer):
@@ -265,5 +267,5 @@ class JobAlertSerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at']
     
     def create(self, validated_data):
-        job_seeker = self.context['request'].user.jobseeker_profile
+        job_seeker = self.context['request'].user
         return JobAlert.objects.create(job_seeker=job_seeker, **validated_data)

@@ -7,7 +7,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, Avg
 from django.utils import timezone
-from django.contrib.auth.models import User
+
+
 
 from .models import (
     JobCategory, Skill, EmployerProfile, JobSeekerProfile, 
@@ -102,12 +103,12 @@ class JobDetailView(generics.RetrieveAPIView):
 
 class EmployerJobListView(generics.ListCreateAPIView):
     serializer_class = JobListSerializer
-    permission_classes = [IsAuthenticated, IsEmployerOrReadOnly]
+    permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     
     def get_queryset(self):
         return Job.objects.filter(
-            employer__user=self.request.user
+            employer=self.request.user
         ).select_related('employer', 'category').prefetch_related('required_skills')
     
     def get_serializer_class(self):
@@ -116,7 +117,7 @@ class EmployerJobListView(generics.ListCreateAPIView):
         return JobListSerializer
 
 class EmployerJobDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated, IsEmployerOrReadOnly]
+    permission_classes = [IsAuthenticated]
     lookup_field = 'id'
     
     def get_queryset(self):
@@ -128,11 +129,11 @@ class EmployerJobDetailView(generics.RetrieveUpdateDestroyAPIView):
         return JobDetailSerializer
 
 @api_view(['PATCH'])
-@permission_classes([IsAuthenticated, IsEmployerOrReadOnly])
+@permission_classes([IsAuthenticated])
 def update_job_status(request, job_id):
     """Update job status (draft/active/closed)"""
     try:
-        job = Job.objects.get(id=job_id, employer__user=request.user)
+        job = Job.objects.get(id=job_id, employer=request.user)
     except Job.DoesNotExist:
         return Response({'error': 'Job not found'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -174,11 +175,12 @@ class JobApplicationDetailView(generics.RetrieveUpdateAPIView):
     lookup_field = 'id'
     
     def get_queryset(self):
-        if hasattr(self.request.user, 'jobseeker_profile'):
-            return JobApplication.objects.filter(applicant=self.request.user.jobseeker_profile)
-        elif hasattr(self.request.user, 'employer_profile'):
-            return JobApplication.objects.filter(job__employer=self.request.user.employer_profile)
-        return JobApplication.objects.none()
+        return JobApplication.objects.filter(applicant=self.request.user)
+        # if hasattr(self.request.user, 'jobseeker_profile'):
+        #     return JobApplication.objects.filter(applicant=self.request.user)
+        # elif hasattr(self.request.user, 'employer_profile'):
+        #     return JobApplication.objects.filter(job__employer=self.request.user)
+        # return JobApplication.objects.none()
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
@@ -213,7 +215,7 @@ def update_application_status(request, application_id):
     })
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated, IsJobSeekerOrReadOnly])
+@permission_classes([IsAuthenticated])
 def withdraw_application(request, application_id):
     """Job seeker withdraws application"""
     try:
@@ -236,7 +238,7 @@ def withdraw_application(request, application_id):
 # =============== SAVED JOBS APIS ===============
 class SavedJobListView(generics.ListAPIView):
     serializer_class = SavedJobSerializer
-    permission_classes = [IsAuthenticated, IsJobSeekerOrReadOnly]
+    permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     
     def get_queryset(self):
@@ -245,7 +247,7 @@ class SavedJobListView(generics.ListAPIView):
         ).select_related('job', 'job__employer', 'job__category')
 
 @api_view(['POST', 'DELETE'])
-@permission_classes([IsAuthenticated, IsJobSeekerOrReadOnly])
+@permission_classes([IsAuthenticated])
 def toggle_save_job(request, job_id):
     """Save or unsave a job"""
     try:
@@ -275,14 +277,14 @@ def toggle_save_job(request, job_id):
 # =============== JOB ALERTS APIS ===============
 class JobAlertListView(generics.ListCreateAPIView):
     serializer_class = JobAlertSerializer
-    permission_classes = [IsAuthenticated, IsJobSeekerOrReadOnly]
+    permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         return JobAlert.objects.filter(job_seeker=self.request.user.jobseeker_profile)
 
 class JobAlertDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = JobAlertSerializer
-    permission_classes = [IsAuthenticated, IsJobSeekerOrReadOnly]
+    permission_classes = [IsAuthenticated]
     lookup_field = 'id'
     
     def get_queryset(self):
@@ -290,7 +292,7 @@ class JobAlertDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 # =============== RECOMMENDATION & SEARCH APIS ===============
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsJobSeekerOrReadOnly])
+@permission_classes([IsAuthenticated])
 def get_recommended_jobs(request):
     """Get personalized job recommendations"""
     job_seeker = request.user.jobseeker_profile

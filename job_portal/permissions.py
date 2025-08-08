@@ -1,3 +1,4 @@
+# permissions.py
 from rest_framework import permissions
 
 class IsEmployerOrReadOnly(permissions.BasePermission):
@@ -11,23 +12,15 @@ class IsEmployerOrReadOnly(permissions.BasePermission):
             return True
         
         # Write permissions only for authenticated employers
-        if request.user and request.user.is_authenticated:
-            return hasattr(request.user, 'employer_profile')
-        
-        return False
+        return request.user and request.user.is_authenticated
     
     def has_object_permission(self, request, view, obj):
         # Read permissions for any request
         if request.method in permissions.SAFE_METHODS:
             return True
         
-        # Write permissions only for the owner of the object
-        if hasattr(obj, 'employer'):
-            return obj.employer.user == request.user
-        elif hasattr(obj, 'job') and hasattr(obj.job, 'employer'):
-            return obj.job.employer.user == request.user
-        
-        return False
+        # Make sure only the user who posted the job can update/delete it
+        return obj.employer == request.user
 
 class IsJobSeekerOrReadOnly(permissions.BasePermission):
     """
