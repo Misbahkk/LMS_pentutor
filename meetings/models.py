@@ -57,17 +57,19 @@ class Meeting(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
-    def save(self, *args, **kwargs):
-        if not self.meeting_id:
-            self.meeting_id = str(uuid.uuid4())  # Use UUID instead of formatted string
-        if not self.password:
-            self.password = self.generate_password()
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+        # if not self.meeting_id:
+        #     self.meeting_id = str(uuid.uuid4())  # Use UUID instead of formatted string
+        # if not self.password and self.is_password_required:
+        #     print("Password created")
+        #     self.password = self.generate_password()
+        # super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         if not self.meeting_id:
             self.meeting_id = self.generate_meeting_id()
-        if not self.password:
+        if not self.password and self.is_password_required:
+            print("save passwrod")
             self.password = self.generate_password()
         super().save(*args, **kwargs)
     

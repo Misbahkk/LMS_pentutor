@@ -23,7 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('authentication.urls')),
     path('api/payments/',include('payments.urls')),
-# path('api/meetings/',include('meetings.urls')),
+path('api/meetings/',include('meetings.urls')),
     path('api/courses/', include('courses.urls')),
     path('api/teacher/', include('teacher_dashbord.urls')),
     path('api/students/',include('student_dashboard.urls')),

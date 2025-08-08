@@ -83,6 +83,10 @@ class CreateMeetingSerializer(serializers.Serializer):
         choices=['instant', 'scheduled', 'lecture'], 
         default='instant'
     )
+    access_type = serializers.ChoiceField(
+        choices=['public', 'private', 'approval_required'],
+        default='public'
+    )
     course_id = serializers.UUIDField(required=False)
     scheduled_time = serializers.DateTimeField(required=False)
     max_participants = serializers.IntegerField(default=100, min_value=2, max_value=500)
@@ -93,6 +97,13 @@ class CreateMeetingSerializer(serializers.Serializer):
     enable_reactions = serializers.BooleanField(default=True)
     is_recorded = serializers.BooleanField(default=False)
     password = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    is_password_required = serializers.BooleanField(default=False)
+    invites = serializers.ListField(
+        child=serializers.EmailField(),
+        required=False,
+        allow_empty=True,
+        help_text="List of email addresses to invite (for private meetings)"
+    )
     
     def validate_scheduled_time(self, value):
         """Validate scheduled time is in future"""
@@ -130,6 +141,10 @@ class CreateMeetingSerializer(serializers.Serializer):
         if data.get('meeting_type') == 'lecture' and not data.get('course_id'):
             raise serializers.ValidationError(
                 "Course is required for lecture meetings"
+            )
+        if data.get('access_type') == 'private' and not data.get('invites'):
+            raise serializers.ValidationError(
+                "Invites are required for private meetings"
             )
         
         return data

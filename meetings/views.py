@@ -18,11 +18,214 @@ from django.utils.text import slugify
 from django.core.mail import send_mail
 from django.conf import settings
 from calendersync.utils import create_google_event
+from celery import shared_task
+
+# Add this task for scheduling meeting reminders
+@shared_task
+def send_meeting_reminder(meeting_id):
+    """Send meeting reminder when scheduled time arrives"""
+    try:
+        meeting = Meeting.objects.get(id=meeting_id)
+        
+        # Send notification to host
+        send_meeting_start_notification(meeting.host, meeting, is_host=True)
+        
+        # For private meetings, send to invited users
+        if meeting.access_type == 'private':
+            invites = MeetingInvite.objects.filter(meeting=meeting, status='accepted')
+            for invite in invites:
+                if invite.user:
+                    send_meeting_start_notification(invite.user, meeting, is_host=False)
+                else:
+                    # Send email to non-registered users
+                    send_meeting_start_email_to_guest(invite.email, meeting)
+        
+        # For lecture meetings, notify enrolled students
+        elif meeting.meeting_type == 'lecture' and meeting.course:
+            enrolled_students = meeting.get_enrolled_students()
+            for enrollment in enrolled_students:
+                send_meeting_start_notification(enrollment.student, meeting, is_host=False)
+        
+        # For public meetings, only notify host
+        elif meeting.access_type == 'public':
+            pass  # Only host gets notification (already sent above)
+            
+    except Meeting.DoesNotExist:
+        print(f"Meeting with id {meeting_id} not found")
+
+def send_meeting_start_notification(user, meeting, is_host=False):
+    """Send notification using your notification app"""
+    try:
+        # Assuming you have a Notification model in your notification app
+        from notifications.models import Notification  # Adjust import based on your app structure
+        
+        if is_host:
+            title = "Your Meeting is Starting"
+            message = f"Your meeting '{meeting.title}' is scheduled to start now."
+        else:
+            title = "Meeting is Starting"
+            message = f"The meeting '{meeting.title}' you were invited to is starting now."
+        
+        Notification.objects.create(
+            user=user,
+            title=title,
+            message=message,
+            notification_type='meeting_start',
+            meeting_id=meeting.meeting_id,
+            is_read=False
+        )
+        
+        # Also send email
+        send_meeting_start_email(user.email, meeting, is_host)
+        
+    except Exception as e:
+        print(f"Error sending notification: {e}")
+
+def send_meeting_start_email(email, meeting, is_host=False):
+    """Send email notification when meeting starts"""
+    try:
+        if is_host:
+            subject = f"Your Meeting '{meeting.title}' is Starting"
+            message = f"""
+            Hello {meeting.host.get_full_name() or meeting.host.username},
+            
+            Your meeting is scheduled to start now.
+            
+            Meeting Details:
+            - Title: {meeting.title}
+            - Meeting ID: {meeting.meeting_id}
+            - Password: {meeting.password if meeting.is_password_required else 'No password required'}
+            - Scheduled Time: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}
+            
+            Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+            
+            Best regards,
+            Your Meeting Platform
+            """
+        else:
+            subject = f"Meeting '{meeting.title}' is Starting"
+            message = f"""
+            Hello,
+            
+            The meeting you were invited to is starting now.
+            
+            Meeting Details:
+            - Title: {meeting.title}
+            - Host: {meeting.host.get_full_name() or meeting.host.username}
+            - Meeting ID: {meeting.meeting_id}
+            - Password: {meeting.password if meeting.is_password_required else 'No password required'}
+            - Scheduled Time: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}
+            
+            Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+            
+            Best regards,
+            Your Meeting Platform
+            """
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        
+    except Exception as e:
+        print(f"Error sending email: {e}")
+
+def send_meeting_start_email_to_guest(email, meeting):
+    """Send email to non-registered users"""
+    try:
+        subject = f"Meeting '{meeting.title}' is Starting"
+        message = f"""
+        Hello,
+        
+        The meeting you were invited to is starting now.
+        
+        Meeting Details:
+        - Title: {meeting.title}
+        - Host: {meeting.host.get_full_name() or meeting.host.username}
+        - Meeting ID: {meeting.meeting_id}
+        - Password: {meeting.password if meeting.is_password_required else 'No password required'}
+        - Scheduled Time: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}
+        
+        Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+        
+        Best regards,
+        Your Meeting Platform
+        """
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        
+    except Exception as e:
+        print(f"Error sending email to guest: {e}")
+
+def send_meeting_invitation_email(email, meeting, invited_by):
+    """Send initial meeting invitation email"""
+    try:
+        subject = f"You're Invited to '{meeting.title}'"
+        
+        if meeting.meeting_type == 'instant':
+            time_info = "This is an instant meeting starting now."
+        else:
+            time_info = f"Scheduled for: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}"
+        
+        message = f"""
+        Hello,
+        
+        You have been invited to join a meeting by {invited_by.get_full_name() or invited_by.username}.
+        
+        Meeting Details:
+        - Title: {meeting.title}
+        - Host: {meeting.host.get_full_name() or meeting.host.username}
+        - {time_info}
+        - Meeting ID: {meeting.meeting_id}
+        - Password: {meeting.password if meeting.is_password_required else 'No password required'}
+        
+        Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+        
+        Best regards,
+        Your Meeting Platform
+        """
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+        
+    except Exception as e:
+        print(f"Error sending invitation email: {e}")
+
+def schedule_meeting_reminder(meeting):
+    """Schedule a reminder task for when the meeting should start"""
+    if meeting.scheduled_time and meeting.meeting_type == 'scheduled':
+        # Schedule the reminder task to run at the meeting time
+        from django_celery_beat.models import PeriodicTask, CrontabSchedule
+        import json
+        
+        try:
+            # Create a one-time task that runs at the scheduled time
+            eta = meeting.scheduled_time
+            send_meeting_reminder.apply_async(
+                args=[meeting.id],
+                eta=eta
+            )
+        except Exception as e:
+            print(f"Error scheduling meeting reminder: {e}")
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_meeting(request):
-    """Create a new meeting with access control"""
+    """Create a new meeting with access control and notifications"""
     serializer = CreateMeetingSerializer(data=request.data)
     
     if not serializer.is_valid():
@@ -30,10 +233,6 @@ def create_meeting(request):
             {'errors': serializer.errors}, 
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    print("Running create_google_event")
-    create_google_event(request.user, meeting)
-    print("Done create_google_event")
     
     data = serializer.validated_data
     is_password_required = data.get('is_password_required', False)
@@ -51,15 +250,22 @@ def create_meeting(request):
         allow_participant_unmute=data.get('allow_unmute', True),
         enable_chat=data.get('enable_chat', True),
         enable_reactions=data.get('enable_reactions', True),
-          is_password_required=is_password_required
+        is_password_required=is_password_required,
+        course_id=data.get('course_id') if data.get('meeting_type') == 'lecture' else None,
+        is_recorded=data.get('is_recorded', False)
     )
+    print("password:",is_password_required)
     
     # Set custom password if provided
     if data.get('password'):
         meeting.password = data['password']
         meeting.save()
     
-    # Create invites for private meetings
+    print("Running create_google_event")
+    create_google_event(request.user, meeting)
+    print("Done create_google_event")
+    
+    # Create invites for private meetings and send emails
     if meeting.access_type == 'private' and data.get('invites'):
         for email in data['invites']:
             try:
@@ -73,6 +279,15 @@ def create_meeting(request):
                 user=user,
                 invited_by=request.user
             )
+            
+            # Send invitation email
+            send_meeting_invitation_email(email, meeting, request.user)
+    
+    # For lecture meetings, notify enrolled students
+    if meeting.meeting_type == 'lecture' and meeting.course:
+        enrolled_students = meeting.get_enrolled_students()
+        for enrollment in enrolled_students:
+            send_meeting_invitation_email(enrollment.student.email, meeting, request.user)
     
     # Host automatically joins as participant
     participant = Participant.objects.create(
@@ -81,9 +296,47 @@ def create_meeting(request):
         role='host'
     )
     
-    # Start meeting if instant
+    # Handle different meeting types
     if meeting.meeting_type == 'instant':
         meeting.start_meeting()
+        # Send immediate notification to host for public meetings
+        if meeting.access_type == 'public':
+            send_meeting_start_notification(request.user, meeting, is_host=True)
+    elif meeting.meeting_type == 'scheduled':
+        # Schedule reminder for when meeting should start
+        schedule_meeting_reminder(meeting)
+        
+        # Send confirmation email to host
+        try:
+            subject = f"Meeting '{meeting.title}' Scheduled Successfully"
+            message = f"""
+            Hello {request.user.get_full_name() or request.user.username},
+            
+            Your meeting has been scheduled successfully.
+            
+            Meeting Details:
+            - Title: {meeting.title}
+            - Scheduled Time: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}
+            - Meeting ID: {meeting.meeting_id}
+            - Password: {meeting.password if meeting.is_password_required else 'No password required'}
+            
+            You will receive a reminder when it's time to start the meeting.
+            
+            Meeting Link: http://127.0.0.1:8000/meeting/join/{meeting.meeting_id}
+            
+            Best regards,
+            Your Meeting Platform
+            """
+            
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[request.user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            print(f"Error sending confirmation email: {e}")
     
     return Response({
         'meeting_id': meeting.meeting_id,
@@ -97,7 +350,7 @@ def create_meeting(request):
 
 
 @api_view(['POST'])
-@permission_classes([])
+@permission_classes([IsAuthenticated])
 def join_meeting(request, meeting_id):
     """Join an existing meeting with access control"""
     serializer = JoinMeetingSerializer(data=request.data)
@@ -117,12 +370,18 @@ def join_meeting(request, meeting_id):
                 'error': 'Meeting has ended'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check password if provided
-        password = serializer.validated_data.get('password', '')
-        if meeting.password and password != meeting.password:
-            return Response({
-                'error': 'Invalid meeting password'
-            }, status=status.HTTP_401_UNAUTHORIZED)
+        # 🔐 Handle password check
+        if meeting.is_password_required:
+            print("passowrd :",meeting.is_password_required)
+            password = serializer.validated_data.get('password', None)
+            if not password:
+                return Response({
+                    'error': 'This meeting requires a password. Please provide one.'
+                }, status=status.HTTP_401_UNAUTHORIZED)
+            if password != meeting.password:
+                return Response({
+                    'error': 'Invalid meeting password'
+                }, status=status.HTTP_401_UNAUTHORIZED)
         
         # Check max participants
         active_participants = meeting.participants.filter(left_at__isnull=True).count()
@@ -131,23 +390,23 @@ def join_meeting(request, meeting_id):
                 'error': 'Meeting is full'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Get or create user
-        name = serializer.validated_data.get('name')
-        email = serializer.validated_data.get('email')
+        # # Get or create user
+        # name = serializer.validated_data.get('name')
+        # email = serializer.validated_data.get('email')
         
         if request.user.is_authenticated:
              user = request.user
         else:
             try:
                 # Check if user already exists with this email
-                user = User.objects.get(email=email)
+                user = User.objects.get(email=user.email)
             except User.DoesNotExist:
                 # Create new user
-                username = slugify(name) + str(random.randint(1000, 9999))
+                username = slugify(user.name) + str(random.randint(1000, 9999))
                 user = User.objects.create_user(
                     username=username,
                     password=User.objects.make_random_password(),
-                    email=email
+                    email=user.email
                 )
 
         
@@ -161,7 +420,7 @@ def join_meeting(request, meeting_id):
             # Check if user is invited
             invite_exists = MeetingInvite.objects.filter(
                 meeting=meeting,
-                email=email
+                email=user.email
             ).exists()
             
             if invite_exists or user == meeting.host:
@@ -181,8 +440,8 @@ def join_meeting(request, meeting_id):
                     meeting=meeting,
                     user=user if request.user.is_authenticated else None,
                     defaults={
-                        'guest_name': name,
-                        'guest_email': email
+                        'guest_name': user.username,
+                        'guest_email': user.email
                     }
                 )
                 
@@ -214,7 +473,7 @@ def join_meeting(request, meeting_id):
             user=user,
             defaults={
                 'role': 'participant',
-                'guest_name': name
+                'guest_name': user.username
             }
         )
         
@@ -226,7 +485,7 @@ def join_meeting(request, meeting_id):
         # Rejoin if previously left
         if not created:
             participant.left_at = None
-            participant.guest_name = name
+            participant.guest_name = user.username
             participant.save()
         
         # Start meeting if host joins

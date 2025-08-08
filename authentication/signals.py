@@ -22,7 +22,13 @@ def create_user_profile(sender, instance, created, **kwargs):
                 city=instance.city,
                 country=instance.country)
         elif instance.role == 'student':
-            StudentProfile.objects.create(user=instance)
+            StudentProfile.objects.create(user=instance,
+                email=instance.email,
+                full_name=f"{instance.first_name} {instance.last_name}",  # Or use instance.get_full_name() if using first_name/last_name
+                age=instance.age,
+                gender=instance.gender,
+                city=instance.city,
+                country=instance.country)
 
 
 @receiver(post_save, sender=User)
