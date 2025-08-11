@@ -1,9 +1,9 @@
 # course/model.py
 
 from django.db import models
-from authentication.models import User
+
 from django.utils import timezone
-from authentication.models import TeacherProfile,StudentProfile
+from authentication.models import TeacherProfile,StudentProfile,User
 
 class Teacher(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -106,7 +106,7 @@ class Assignment(models.Model):
         return f"{self.course.title} - {self.title}"
 
 class Enrollment(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE)  # Student portal k liye baad me use karenge
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE)  # Student portal k liye baad me use karenge
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
     payment_status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('verified', 'Verified')], null=True,blank=True)
     enrolled_at = models.DateTimeField(default=timezone.now)

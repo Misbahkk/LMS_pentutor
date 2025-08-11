@@ -13,16 +13,23 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.shortcuts import get_object_or_404
-from .models import User
+from .models import User,StudentProfile,TeacherProfile
 from .serializers import (
     UserRegistrationSerializer, 
     UserLoginSerializer, 
     UserSerializer,
-    RoleUpdateSerializer
+    RoleUpdateSerializer,
+    StudentProfileSerializer,
+    TeacherProfileSerializer
 )
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
+    @swagger_auto_schema(
+        request_body=UserRegistrationSerializer,
+    )
     
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
@@ -98,6 +105,9 @@ class EmailVerificationView(APIView):
 
 class UserLoginView(APIView):
     permission_classes = [AllowAny]
+    @swagger_auto_schema(
+        request_body=UserLoginSerializer,
+    )
     
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
@@ -125,7 +135,9 @@ class UserLoginView(APIView):
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    
+    @swagger_auto_schema(
+        responses={200: UserSerializer}
+    )
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response({
@@ -227,7 +239,94 @@ class ResendVerificationEmailView(APIView):
             send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
         except Exception as e:
             print(f"Email sending failed: {e}")
-            
+
+# ======================================
+# Update Studnet Profile
+# ===================================
+class ProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get_profile_and_serializer(self, user):
+        """Helper method to get the appropriate profile and serializer based on user role."""
+        if user.role == 'student':
+            profile = get_object_or_404(StudentProfile, user=user)
+            serializer_class = StudentProfileSerializer
+        elif user.role == 'teacher':
+            profile = get_object_or_404(TeacherProfile, user=user)
+            serializer_class = TeacherProfileSerializer
+        else:
+            return None, None
+        return profile, serializer_class
+    
+    def get(self, request):
+        """Retrieve the user's profile."""
+        profile, serializer_class = self.get_profile_and_serializer(request.user)
+        
+        if not profile or not serializer_class:
+            return Response({
+                'success': False,
+                'message': 'Invalid user role or profile not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = serializer_class(profile)
+        return Response({
+            'success': True,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    def put(self, request):
+        """Update the entire profile."""
+        profile, serializer_class = self.get_profile_and_serializer(request.user)
+        
+        if not profile or not serializer_class:
+            return Response({
+                'success': False,
+                'message': 'Invalid user role or profile not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = serializer_class(profile, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Profile updated successfully',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'success': False,
+            'message': 'Profile update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    def patch(self, request):
+        """Partially update the profile."""
+        profile, serializer_class = self.get_profile_and_serializer(request.user)
+        
+        if not profile or not serializer_class:
+            return Response({
+                'success': False,
+                'message': 'Invalid user role or profile not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = serializer_class(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Profile updated successfully',
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'success': False,
+            'message': 'Profile update failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)           
+
+# ===================================
+# Admin Content
+# ===================================
 class AdminUserListView(APIView):
     permission_classes = [IsAuthenticated]
     

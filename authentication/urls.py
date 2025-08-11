@@ -7,7 +7,8 @@ from .views import (
     EmailVerificationView,
     AdminUserListView,
     AdminRoleUpdateView,
-    ResendVerificationEmailView
+    ResendVerificationEmailView,
+    ProfileUpdateView
 )
 
 urlpatterns = [
@@ -15,6 +16,7 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='login'),
     path('logout/', UserLogoutView.as_view(), name='logout'),
     path('profile/', UserProfileView.as_view(), name='profile'),
+    path('profile/update/', ProfileUpdateView.as_view(), name='profile-update'),
     path('verify-email/<str:token>/', EmailVerificationView.as_view(), name='verify-email'),
     path('resend-verification/', ResendVerificationEmailView.as_view(), name='resend-verification'),
     path('admin/users/', AdminUserListView.as_view(), name='admin-users'),
