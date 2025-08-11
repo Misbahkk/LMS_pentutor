@@ -79,6 +79,7 @@ class TeacherProfile(models.Model):
     address = models.TextField(blank=True, null=True)
     city = models.CharField(max_length=50, blank=True)
     country = models.CharField(max_length=50, blank=True)
+    bio = models.TextField(blank=True)
     profile_picture = models.ImageField(upload_to='teacher_profiles/', null=True, blank=True)
 
     # Professional Info

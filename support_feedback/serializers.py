@@ -2,13 +2,13 @@
 from rest_framework import serializers
 from .models import SupportTicket, CourseFeedback, TeacherFeedback, TicketReply
 from django.contrib.auth import get_user_model
-
+from authentication.serializers import UserSerializer
 User = get_user_model()
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+# class UserSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = User
+#         fields = ['id', 'username', 'email', 'first_name', 'last_name']
 
 class TicketReplySerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

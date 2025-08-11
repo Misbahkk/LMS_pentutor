@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
+from authentication.models import TeacherProfile,StudentProfile
 from courses.models import Course, Video, Quiz, Assignment, Enrollment, Teacher
 from courses.serializers import CourseListSerializer, VideoDetailSerializer, QuizSerializer, AssignmentSerializer
 from .serializers import TeacherCourseSerializer, TeacherVideoSerializer, TeacherQuizSerializer, EnrolledStudentSerializer,LiveClassSerializer
@@ -27,8 +28,8 @@ def teacher_dashboard(request):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
-    except Teacher.DoesNotExist:
+        teacher = TeacherProfile.objects.get(user=request.user)
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'

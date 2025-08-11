@@ -3,6 +3,7 @@
 from django.db import models
 from authentication.models import User
 from django.utils import timezone
+from authentication.models import TeacherProfile,StudentProfile
 
 class Teacher(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -20,7 +21,7 @@ class Course(models.Model):
     
     title = models.CharField(max_length=200)
     description = models.TextField()
-    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     has_live_classes = models.BooleanField(default=False)
     live_class_schedule = models.JSONField(default=dict, blank=True)
