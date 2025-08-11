@@ -170,6 +170,64 @@ class UserLogoutView(APIView):
                 'message': 'Logout failed'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+
+class ResendVerificationEmailView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({
+                'success': False,
+                'message': 'Email is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(email=email)
+            if user.is_verified:
+                return Response({
+                    'success': False,
+                    'message': 'Email is already verified'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Generate new verification token
+            verification_token = get_random_string(50)
+            user.verification_token = verification_token
+            user.save()
+            
+            # Send verification email
+            self.send_verification_email(user, verification_token)
+            
+            return Response({
+                'success': True,
+                'message': 'Verification email sent successfully'
+            }, status=status.HTTP_200_OK)
+        
+        except User.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'User not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    def send_verification_email(self, user, token):
+        subject = 'Verify Your Email - LMS'
+        message = f'''
+        Hi {user.username},
+        
+        Please click the following link to verify your email:
+        http://localhost:8000/api/auth/verify-email/{token}/
+        
+        If you didn't request this, please ignore this email.
+        
+        Best regards,
+        LMS Team
+        '''
+        
+        try:
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+        except Exception as e:
+            print(f"Email sending failed: {e}")
+            
 class AdminUserListView(APIView):
     permission_classes = [IsAuthenticated]
     
@@ -247,60 +305,3 @@ class AdminRoleUpdateView(APIView):
                 'success': False,
                 'message': 'User not found'
             }, status=status.HTTP_404_NOT_FOUND)
-
-class ResendVerificationEmailView(APIView):
-    permission_classes = [AllowAny]
-    
-    def post(self, request):
-        email = request.data.get('email')
-        if not email:
-            return Response({
-                'success': False,
-                'message': 'Email is required'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            user = User.objects.get(email=email)
-            if user.is_verified:
-                return Response({
-                    'success': False,
-                    'message': 'Email is already verified'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Generate new verification token
-            verification_token = get_random_string(50)
-            user.verification_token = verification_token
-            user.save()
-            
-            # Send verification email
-            self.send_verification_email(user, verification_token)
-            
-            return Response({
-                'success': True,
-                'message': 'Verification email sent successfully'
-            }, status=status.HTTP_200_OK)
-        
-        except User.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'User not found'
-            }, status=status.HTTP_404_NOT_FOUND)
-    
-    def send_verification_email(self, user, token):
-        subject = 'Verify Your Email - LMS'
-        message = f'''
-        Hi {user.username},
-        
-        Please click the following link to verify your email:
-        http://localhost:8000/api/auth/verify-email/{token}/
-        
-        If you didn't request this, please ignore this email.
-        
-        Best regards,
-        LMS Team
-        '''
-        
-        try:
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
-        except Exception as e:
-            print(f"Email sending failed: {e}")
