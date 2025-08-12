@@ -8,13 +8,20 @@ from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.db import models
 
-from authentication.models import User
+from authentication.models import User,TeacherProfile,StudentProfile
 from authentication.serializers import UserSerializer
 from courses.models import Course, Teacher, Enrollment
 from courses.serializers import CourseListSerializer
 from payments.models import Payment
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
+@swagger_auto_schema(
+    method='get',
+    operation_summary="Admin Dashboard Overview",
+    operation_description="Get an overview of statistics for admin dashboard, including users, courses, payments, and recent activities.",
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_dashboard_overview(request):
@@ -91,6 +98,16 @@ def admin_dashboard_overview(request):
     }, status=status.HTTP_200_OK)
 
 
+@swagger_auto_schema(
+    method='get',
+    operation_summary="List Users (Admin/Subadmin)",
+    manual_parameters=[
+        openapi.Parameter('role', openapi.IN_QUERY, description="Filter by role (student, teacher, admin, subadmin)", type=openapi.TYPE_STRING),
+        openapi.Parameter('search', openapi.IN_QUERY, description="Search by username, email, first_name, last_name", type=openapi.TYPE_STRING),
+        openapi.Parameter('is_verified', openapi.IN_QUERY, description="Filter by verification status (true/false)", type=openapi.TYPE_BOOLEAN),
+    ],
+    responses={200: "List of users"}
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_users_list(request):
@@ -138,6 +155,21 @@ def admin_users_list(request):
     }, status=status.HTTP_200_OK)
 
 
+@swagger_auto_schema(
+    method='put',
+    operation_summary="Update User Role (Admin only)",
+    manual_parameters=[
+        openapi.Parameter('user_id', openapi.IN_PATH, description="User ID to update", type=openapi.TYPE_STRING)
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'role': openapi.Schema(type=openapi.TYPE_STRING, description="New role (student, teacher, admin, subadmin)")
+        },
+        required=['role']
+    ),
+    responses={200: "Role updated successfully"}
+)
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def admin_update_user_role(request, user_id):
@@ -176,6 +208,15 @@ def admin_update_user_role(request, user_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
+@swagger_auto_schema(
+    method='get',
+    operation_summary="Get all teachers with their courses",
+    operation_description="Returns a list of all teachers with their basic info and course statistics.",
+    responses={
+        200: openapi.Response(
+            description="Successful Response",)
+    }
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_teachers_courses(request):
@@ -189,7 +230,7 @@ def admin_teachers_courses(request):
         }, status=status.HTTP_403_FORBIDDEN)
     
     # Get all teachers
-    teachers = Teacher.objects.select_related('user').prefetch_related('course_set')
+    teachers = TeacherProfile.objects.select_related('user').prefetch_related('course_set')
     
     teachers_data = []
     for teacher in teachers:
@@ -221,6 +262,20 @@ def admin_teachers_courses(request):
     }, status=status.HTTP_200_OK)
 
 
+# ===========================
+# Admin Payment
+# ===========================
+@swagger_auto_schema(
+    method='get',
+    tags=['Admin - Payments'],
+    operation_summary="Get all course payments",
+    operation_description="Returns payment records with optional filtering by course, status, and gateway.",
+    manual_parameters=[
+        openapi.Parameter('course_id', openapi.IN_QUERY, description="Filter by course ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('status', openapi.IN_QUERY, description="Filter by payment status (successful/failed)", type=openapi.TYPE_STRING),
+        openapi.Parameter('gateway', openapi.IN_QUERY, description="Filter by payment gateway name", type=openapi.TYPE_STRING),
+    ]
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_course_payments(request):
@@ -293,6 +348,20 @@ def admin_course_payments(request):
     }, status=status.HTTP_200_OK)
 
 
+@swagger_auto_schema(
+    method='put',
+    tags=['Admin - Payments'],
+    operation_summary="Verify or update payment status",
+    manual_parameters=[
+        openapi.Parameter('payment_id', openapi.IN_PATH, description="ID of the payment to update", type=openapi.TYPE_STRING)
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'is_successful': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Set True if payment is successful")
+        }
+    )
+)
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def admin_verify_payment(request, payment_id):
@@ -329,6 +398,17 @@ def admin_verify_payment(request, payment_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
+
+@swagger_auto_schema(
+    method='get',
+    operation_summary=" Get all course enrollments with student details",
+    operation_description="Returns Course",
+    manual_parameters=[
+        openapi.Parameter('course_id', openapi.IN_QUERY, description="Filter by course ID", type=openapi.TYPE_INTEGER),
+        openapi.Parameter('course_type', openapi.IN_QUERY, description="Filter by Course Type (paid/unpaid)", type=openapi.TYPE_STRING),
+        openapi.Parameter('is_completed', openapi.IN_QUERY, description="Filter by complete or not", type=openapi.TYPE_STRING),
+    ]
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_course_enrollments(request):
@@ -411,7 +491,15 @@ def admin_delete_user(request, user_id):
             'message': 'User not found'
         }, status=status.HTTP_404_NOT_FOUND)
 
-
+@swagger_auto_schema(
+    method='get',
+    operation_summary="  Get detailed information about a specific users",
+    operation_description="Returns User",
+     manual_parameters=[
+        openapi.Parameter('user_id', openapi.IN_PATH, description="User ID to update", type=openapi.TYPE_STRING)
+    ],
+  
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def admin_user_detail(request, user_id):
@@ -432,7 +520,7 @@ def admin_user_detail(request, user_id):
         
         if user.role == 'teacher':
             try:
-                teacher = Teacher.objects.get(user=user)
+                teacher = TeacherProfile.objects.get(user=user)
                 courses = Course.objects.filter(teacher=teacher)
                 additional_info = {
                     'teacher_profile': {
@@ -441,7 +529,7 @@ def admin_user_detail(request, user_id):
                         'active_courses': courses.filter(is_active=True).count()
                     }
                 }
-            except Teacher.DoesNotExist:
+            except TeacherProfile.DoesNotExist:
                 additional_info = {'teacher_profile': None}
         
         elif user.role == 'student':
@@ -497,6 +585,47 @@ class AdminSupportTicketDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = SupportTicketSerializer
     queryset = SupportTicket.objects.all()
 
+    @swagger_auto_schema(
+        tags=['Admin Support Ticket'],
+        operation_summary="Retrieve a support ticket",
+        operation_description="Get details of a specific support ticket by ID. Admin access only.",
+        responses={200: SupportTicketSerializer()}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        tags=['Admin Support Ticket'],
+        operation_summary="Update a support ticket",
+        operation_description="Update fields of a specific support ticket. Admin access only.",
+        request_body=SupportTicketSerializer,
+        responses={200: SupportTicketSerializer()}
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+
+@swagger_auto_schema(
+    method='post',
+    tags=[
+        'Admin Support Ticket'
+    ],
+    operation_summary="Reply to a ticket (Admin only)",
+    operation_description="Admin can reply to a support ticket by providing a message.",
+    request_body=TicketReplyCreateSerializer,
+    responses={
+        201: TicketReplyCreateSerializer,
+        400: "Bad Request - Validation errors"
+    },
+    manual_parameters=[
+        openapi.Parameter(
+            'ticket_id',
+            openapi.IN_PATH,
+            description="ID of the support ticket",
+            type=openapi.TYPE_STRING
+        )
+    ]
+)
 @api_view(['POST'])
 @permission_classes([permissions.IsAdminUser])
 def admin_reply_ticket(request, ticket_id):
@@ -514,7 +643,25 @@ class AdminCourseFeedbackListView(generics.ListAPIView):
     serializer_class = CourseFeedbackSerializer
     queryset = CourseFeedback.objects.all()
 
+    @swagger_auto_schema(
+        tags=['Admin Support Ticket'],
+        operation_summary="List all course feedback",
+        operation_description="Retrieve all course feedback entries. Admin access only.",
+        responses={200: CourseFeedbackSerializer(many=True)}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
 class AdminTeacherFeedbackListView(generics.ListAPIView):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = TeacherFeedbackSerializer  
     queryset = TeacherFeedback.objects.all()
+
+    @swagger_auto_schema(
+        tags=['Admin Support Ticket'],
+        operation_summary="List all teacher feedback",
+        operation_description="Retrieve all teacher feedback entries. Admin access only.",
+        responses={200: TeacherFeedbackSerializer(many=True)}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)

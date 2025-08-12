@@ -29,6 +29,10 @@ class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
     @swagger_auto_schema(
         request_body=UserRegistrationSerializer,
+        responses={
+        201: openapi.Response('Registration Successful', UserSerializer),
+        400: 'Bad Request'
+    }
     )
     
     def post(self, request):
@@ -84,6 +88,17 @@ class UserRegistrationView(APIView):
 
 class EmailVerificationView(APIView):
     permission_classes = [AllowAny]
+    @swagger_auto_schema(
+    manual_parameters=[
+        openapi.Parameter(
+            'token',
+            openapi.IN_PATH,
+            description="Email verification token",
+            type=openapi.TYPE_STRING
+        )
+    ],
+    responses={200: 'Email verified successfully', 400: 'Invalid or expired token'}
+)
     
     def get(self, request, token):
         try:
@@ -106,8 +121,9 @@ class EmailVerificationView(APIView):
 class UserLoginView(APIView):
     permission_classes = [AllowAny]
     @swagger_auto_schema(
-        request_body=UserLoginSerializer,
-    )
+    request_body=UserLoginSerializer,
+    responses={200: 'Login successful', 400: 'Invalid credentials'}
+)
     
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
@@ -135,9 +151,7 @@ class UserLoginView(APIView):
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    @swagger_auto_schema(
-        responses={200: UserSerializer}
-    )
+    @swagger_auto_schema(responses={200: UserSerializer})
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response({
@@ -145,6 +159,10 @@ class UserProfileView(APIView):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(
+        request_body=UserSerializer,
+        responses={200: UserSerializer, 400: 'Validation Error'}
+    )
     def put(self, request):
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         if serializer.is_valid():
@@ -163,6 +181,16 @@ class UserProfileView(APIView):
 
 class UserLogoutView(APIView):
     permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'refresh_token': openapi.Schema(type=openapi.TYPE_STRING)
+        },
+        required=['refresh_token']
+    ),
+    responses={200: 'Logout successful', 400: 'Logout failed'}
+)
     
     def post(self, request):
         try:
@@ -185,7 +213,17 @@ class UserLogoutView(APIView):
 
 class ResendVerificationEmailView(APIView):
     permission_classes = [AllowAny]
-    
+    @swagger_auto_schema(
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'email': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_EMAIL)
+        },
+        required=['email']
+    ),
+    responses={200: 'Verification email sent', 404: 'User not found'}
+)
+
     def post(self, request):
         email = request.data.get('email')
         if not email:
@@ -245,6 +283,12 @@ class ResendVerificationEmailView(APIView):
 # ===================================
 class ProfileUpdateView(APIView):
     permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+    responses={
+        200: StudentProfileSerializer,  # or TeacherProfileSerializer dynamically
+        404: 'Profile not found'
+    }
+)
     
     def get_profile_and_serializer(self, user):
         """Helper method to get the appropriate profile and serializer based on user role."""
@@ -274,6 +318,11 @@ class ProfileUpdateView(APIView):
             'data': serializer.data
         }, status=status.HTTP_200_OK)
     
+
+    @swagger_auto_schema(
+    request_body=StudentProfileSerializer,  # or TeacherProfileSerializer dynamically
+    responses={200: 'Profile updated successfully', 400: 'Validation Error'}
+)
     def put(self, request):
         """Update the entire profile."""
         profile, serializer_class = self.get_profile_and_serializer(request.user)
@@ -329,7 +378,13 @@ class ProfileUpdateView(APIView):
 # ===================================
 class AdminUserListView(APIView):
     permission_classes = [IsAuthenticated]
-    
+    @swagger_auto_schema(
+    manual_parameters=[
+        openapi.Parameter('role', openapi.IN_QUERY, type=openapi.TYPE_STRING),
+        openapi.Parameter('is_verified', openapi.IN_QUERY, type=openapi.TYPE_BOOLEAN)
+    ],
+    responses={200: UserSerializer(many=True)}
+)
     def get(self, request):
         # Check if user is admin or subadmin
         if request.user.role not in ['admin', 'subadmin']:
@@ -360,7 +415,14 @@ class AdminUserListView(APIView):
 
 class AdminRoleUpdateView(APIView):
     permission_classes = [IsAuthenticated]
-    
+    @swagger_auto_schema(
+    manual_parameters=[
+        openapi.Parameter('user_id', openapi.IN_PATH, type=openapi.TYPE_INTEGER)
+    ],
+    request_body=RoleUpdateSerializer,
+    responses={200: UserSerializer, 400: 'Validation Error', 404: 'User not found'}
+)
+
     def put(self, request, user_id):
         # Check if user is admin
         if request.user.role != 'admin':

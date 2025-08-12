@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path,include
+from django.urls import path,include,re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework import permissions
@@ -43,6 +43,7 @@ urlpatterns = [
     path('api/meetings/',include('meetings.urls')),
     path('api/courses/', include('courses.urls')),
     path('api/teacher/', include('teacher_dashbord.urls')),
+    path('api/admin-portal/',include('admin_dashboard.urls')),
     path('api/students/',include('student_dashboard.urls')),
     path('api/calendar/', include('calendersync.urls')),
     path('api/alerts/', include('alerts.urls')),
@@ -53,6 +54,7 @@ urlpatterns = [
     path('api/chat/', include('chat.urls')),
      path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+    re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
 ]
 
 
