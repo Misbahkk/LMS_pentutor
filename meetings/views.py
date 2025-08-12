@@ -19,6 +19,11 @@ from django.core.mail import send_mail
 from django.conf import settings
 from calendersync.utils import create_google_event
 from celery import shared_task
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+
+
 
 # Add this task for scheduling meeting reminders
 @shared_task
@@ -67,11 +72,11 @@ def send_meeting_start_notification(user, meeting, is_host=False):
             message = f"The meeting '{meeting.title}' you were invited to is starting now."
         
         Notification.objects.create(
-            user=user,
+            recipient=user,
             title=title,
             message=message,
             notification_type='meeting_start',
-            meeting_id=meeting.meeting_id,
+            meeting=meeting,
             is_read=False
         )
         
@@ -97,7 +102,7 @@ def send_meeting_start_email(email, meeting, is_host=False):
             - Password: {meeting.password if meeting.is_password_required else 'No password required'}
             - Scheduled Time: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}
             
-            Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+            Join the meeting: http://127.0.0.1:8000/api/meeting/join/{meeting.meeting_id}
             
             Best regards,
             Your Meeting Platform
@@ -116,7 +121,7 @@ def send_meeting_start_email(email, meeting, is_host=False):
             - Password: {meeting.password if meeting.is_password_required else 'No password required'}
             - Scheduled Time: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}
             
-            Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+            Join the meeting: http://127.0.0.1:8000/api/meeting/join/{meeting.meeting_id}
             
             Best regards,
             Your Meeting Platform
@@ -149,7 +154,7 @@ def send_meeting_start_email_to_guest(email, meeting):
         - Password: {meeting.password if meeting.is_password_required else 'No password required'}
         - Scheduled Time: {meeting.scheduled_time.strftime('%Y-%m-%d %H:%M')}
         
-        Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+        Join the meeting: http://127.0.0.1:8000/api/meeting/join/{meeting.meeting_id}
         
         Best regards,
         Your Meeting Platform
@@ -188,7 +193,7 @@ def send_meeting_invitation_email(email, meeting, invited_by):
         - Meeting ID: {meeting.meeting_id}
         - Password: {meeting.password if meeting.is_password_required else 'No password required'}
         
-        Join the meeting: {settings.FRONTEND_URL}/meeting/join/{meeting.meeting_id}
+        Join the meeting: http://127.0.0.1:8000/pi//meeting/join/{meeting.meeting_id}
         
         Best regards,
         Your Meeting Platform
@@ -222,6 +227,12 @@ def schedule_meeting_reminder(meeting):
         except Exception as e:
             print(f"Error scheduling meeting reminder: {e}")
 
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Create a new meeting",
+    tags=["Meetings"],
+    request_body=CreateMeetingSerializer
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_meeting(request):
@@ -287,7 +298,7 @@ def create_meeting(request):
     if meeting.meeting_type == 'lecture' and meeting.course:
         enrolled_students = meeting.get_enrolled_students()
         for enrollment in enrolled_students:
-            send_meeting_invitation_email(enrollment.student.email, meeting, request.user)
+            send_meeting_invitation_email(enrollment.student, meeting, request.user)
     
     # Host automatically joins as participant
     participant = Participant.objects.create(
@@ -301,7 +312,7 @@ def create_meeting(request):
         meeting.start_meeting()
         # Send immediate notification to host for public meetings
         if meeting.access_type == 'public':
-            send_meeting_start_notification(request.user, meeting, is_host=True)
+            send_meeting_start_notification(request.user.email, meeting, is_host=True)
     elif meeting.meeting_type == 'scheduled':
         # Schedule reminder for when meeting should start
         schedule_meeting_reminder(meeting)
@@ -349,6 +360,22 @@ def create_meeting(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Join an existing meeting",
+    tags=["Meetings"],
+    manual_parameters=[
+        openapi.Parameter(
+            'meeting_id',
+            openapi.IN_PATH,
+            description="UUID of the meeting",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ],
+    request_body=JoinMeetingSerializer
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def join_meeting(request, meeting_id):
@@ -670,7 +697,27 @@ def join_meeting(request, meeting_id):
 #             'error': 'Only host or co-host can send invites'
 #         }, status=status.HTTP_403_FORBIDDEN)
 
-
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Leave a meeting",
+    tags=["Meetings"],
+    manual_parameters=[
+        openapi.Parameter(
+            'meeting_id',
+            openapi.IN_PATH,
+            description="UUID of the meeting",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'guest_name': openapi.Schema(type=openapi.TYPE_STRING, description="Guest user's name if not logged in")
+        }
+    )
+)
 # Keep existing views with minor modifications
 @api_view(['POST'])
 @permission_classes([])
@@ -709,6 +756,22 @@ def leave_meeting(request, meeting_id):
             'error': 'You are not in this meeting'
         }, status=status.HTTP_400_BAD_REQUEST)
 
+
+@swagger_auto_schema(
+    method='post',
+    operation_summary="End a meeting (only host or co-host)",
+    tags=["Meetings"],
+    manual_parameters=[
+        openapi.Parameter(
+            'meeting_id',
+            openapi.IN_PATH,
+            description="UUID of the meeting",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ]
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def end_meeting(request, meeting_id):
@@ -746,6 +809,21 @@ def end_meeting(request, meeting_id):
         }, status=status.HTTP_403_FORBIDDEN)
 
 
+@swagger_auto_schema(
+    method='get',
+    operation_summary="Get list of participants in a meeting",
+    tags=["Meetings"],
+    manual_parameters=[
+        openapi.Parameter(
+            'meeting_id',
+            openapi.IN_PATH,
+            description="UUID of the meeting",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ]
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_meeting_participants(request, meeting_id):
@@ -862,7 +940,7 @@ def send_meeting_invitation(invite):
         Meeting: {invite.meeting.title}
         Host: {invite.meeting.host.get_full_name() or invite.meeting.host.username}
         
-        Join URL: {settings.FRONTEND_URL}/meeting/join/{invite.meeting.meeting_id}
+        Join URL: http://127.0.0.1:8000/api/meeting/join/{invite.meeting.meeting_id}
         Password: {invite.meeting.password if invite.meeting.password else 'No password required'}
         
         Best regards,

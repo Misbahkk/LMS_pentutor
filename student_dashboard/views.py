@@ -12,8 +12,15 @@ from courses.models import Course, Video, Quiz, Assignment, Enrollment, Progress
 from courses.serializers import CourseListSerializer, CourseDetailSerializer
 from payments.models import Payment
 from email_automation.tasks import send_enrollment_email
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 
+@swagger_auto_schema(
+    method='get',
+    tags=['Student Dashboard'],
+    operation_summary="Get student dashboard overview"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def student_dashboard(request):
@@ -75,6 +82,12 @@ def student_dashboard(request):
     }, status=status.HTTP_200_OK)
 
 
+
+@swagger_auto_schema(
+    method='get',
+    tags=['Student Dashboard'],
+    operation_summary="Get all enrolled courses for the student"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def student_enrolled_courses(request):
@@ -139,6 +152,22 @@ def student_enrolled_courses(request):
     }, status=status.HTTP_200_OK)
 
 
+
+@swagger_auto_schema(
+    method='post',
+    tags=['Student Dashboard'],
+    operation_summary="Enroll in a course",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course to enroll in",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ]
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def enroll_in_course(request, course_id):
@@ -210,6 +239,21 @@ def enroll_in_course(request, course_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
+@swagger_auto_schema(
+    method='get',
+    tags=['Student Dashboard'],
+    operation_summary="Get detailed progress for a specific course",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ]
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def student_course_progress(request, course_id):
@@ -335,6 +379,21 @@ def student_course_progress(request, course_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
+@swagger_auto_schema(
+    method='post',
+    tags=['Student Dashboard'],
+    operation_summary="Mark a video as completed",
+    manual_parameters=[
+        openapi.Parameter(
+            'video_id',
+            openapi.IN_PATH,
+            description="UUID of the video",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ]
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_video_completed(request, video_id):
@@ -390,6 +449,21 @@ def mark_video_completed(request, video_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
+@swagger_auto_schema(
+    method='post',
+    tags=['Student Dashboard'],
+    operation_summary="Mark a quiz as completed",
+    manual_parameters=[
+        openapi.Parameter(
+            'quiz_id',
+            openapi.IN_PATH,
+            description="UUID of the quiz",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID,
+            required=True
+        )
+    ]
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def mark_quiz_completed(request, quiz_id):
@@ -445,6 +519,12 @@ def mark_quiz_completed(request, quiz_id):
         }, status=status.HTTP_404_NOT_FOUND)
 
 
+
+@swagger_auto_schema(
+    method='get',
+    tags=['Student Dashboard'],
+    operation_summary="Get student's payment history"
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def student_payment_history(request):
@@ -497,7 +577,25 @@ def student_payment_history(request):
     }, status=status.HTTP_200_OK)
 
 
-
+@swagger_auto_schema(
+    method='get',
+    tags=['Student Dashboard'],
+    operation_summary="Get available courses for enrollment",
+    manual_parameters=[
+        openapi.Parameter(
+            'type',
+            openapi.IN_QUERY,
+            description="Filter by course type (free/paid)",
+            type=openapi.TYPE_STRING
+        ),
+        openapi.Parameter(
+            'search',
+            openapi.IN_QUERY,
+            description="Search by course title, description, or teacher name",
+            type=openapi.TYPE_STRING
+        )
+    ]
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def available_courses(request):

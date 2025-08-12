@@ -1,12 +1,12 @@
 # notifications/models.py
 
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 from courses.models import Course, Video, Quiz
 from meetings.models import Meeting
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class Notification(models.Model):
@@ -19,6 +19,7 @@ class Notification(models.Model):
         ('student_enrolled', 'Student Enrolled'),
         ('live_class_scheduled', 'Live Class Scheduled'),
         ('payment_completed', 'Payment Completed'),
+         ('meeting_start', 'Meeting Start'),
         ('general', 'General Notification'),
     ]
     

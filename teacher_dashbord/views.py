@@ -4,8 +4,6 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q
 from authentication.models import TeacherProfile,StudentProfile
 from courses.models import Course, Video, Quiz, Assignment, Enrollment
 from courses.serializers import CourseListSerializer, VideoDetailSerializer, QuizSerializer, AssignmentSerializer
@@ -13,7 +11,27 @@ from .serializers import TeacherCourseSerializer, TeacherVideoSerializer, Teache
 from meetings.models import Meeting
 from django.core.mail import send_mail
 from datetime import datetime
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
+
+@swagger_auto_schema(
+    method='get',
+    operation_summary="Get teacher dashboard statistics",
+    operation_description="Returns overview statistics for teacher dashboard including course counts, student counts, and recent courses.",
+    responses={
+        200: openapi.Response(
+            description="Dashboard data retrieved successfully",
+        ),
+        403: openapi.Response(
+            description="Forbidden - Teacher privileges required",
+                   ),
+        404: openapi.Response(
+            description="Teacher profile not found",
+                 )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def teacher_dashboard(request):
@@ -64,7 +82,56 @@ def teacher_dashboard(request):
         }
     }, status=status.HTTP_200_OK)
 
-
+#=========================================
+# Teacher's courses
+# ========================================
+@swagger_auto_schema(
+    method='get',
+    tags=["Teacher's Course"],
+    operation_summary="List all teacher's courses",
+    operation_description="Retrieve a list of all courses belonging to the authenticated teacher.",
+    responses={
+        200: openapi.Response(
+            description="Courses retrieved successfully",
+            schema=TeacherCourseSerializer(many=True)
+        ),
+        403: openapi.Response(
+            description="Forbidden - Teacher privileges required",
+         
+        ),
+        404: openapi.Response(
+            description="Teacher profile not found",
+           
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='post',
+     tags=["Teacher's Course"],
+    operation_summary="Create a new course",
+    operation_description="Create a new course for the authenticated teacher.",
+    request_body=TeacherCourseSerializer,
+    responses={
+        201: openapi.Response(
+            description="Course created successfully",
+            schema=TeacherCourseSerializer
+        ),
+        400: openapi.Response(
+            description="Bad request - Invalid data",
+          
+        ),
+        403: openapi.Response(
+            description="Forbidden - Teacher privileges required",
+            
+        ),
+        404: openapi.Response(
+            description="Teacher profile not found",
+           
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def teacher_courses(request):
@@ -112,6 +179,99 @@ def teacher_courses(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+@swagger_auto_schema(
+    method='get',
+     tags=["Teacher's Course"],
+    operation_summary="Get course details",
+    operation_description="Retrieve details of a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    responses={
+        200: openapi.Response(
+            description="Course details retrieved successfully",
+            schema=TeacherCourseSerializer
+        ),
+        403: openapi.Response(
+            description="Forbidden - Teacher privileges required",
+            
+        ),
+        404: openapi.Response(
+            description="Course or teacher profile not found",
+          
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='put',
+     tags=["Teacher's Course"],
+    operation_summary="Update course details",
+    operation_description="Update details of a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    request_body=TeacherCourseSerializer,
+    responses={
+        200: openapi.Response(
+            description="Course updated successfully",
+            schema=TeacherCourseSerializer
+        ),
+        400: openapi.Response(
+            description="Bad request - Invalid data",
+        ),
+        403: openapi.Response(
+            description="Forbidden - Teacher privileges required",
+        ),
+        404: openapi.Response(
+            description="Course or teacher profile not found",
+        )
+    },
+    security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='delete',
+     tags=["Teacher's Course"],
+    operation_summary="Delete a course",
+    operation_description="Delete a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    responses={
+        200: openapi.Response(
+            description="Course deleted successfully",
+          
+        ),
+        403: openapi.Response(
+            description="Forbidden - Teacher privileges required",
+          
+        ),
+        404: openapi.Response(
+            description="Course or teacher profile not found",
+           
+        )
+    },
+    security=[{'Bearer': []}]
+)
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def teacher_course_detail(request, course_id):
@@ -169,6 +329,43 @@ def teacher_course_detail(request, course_id):
         }, status=status.HTTP_200_OK)
 
 
+# ===========================
+# Teacher Course Vedios
+# ============================
+@swagger_auto_schema(
+    method='get',
+     tags=["Teacher Course Vedio"],
+    operation_summary="List course videos",
+    operation_description="Retrieve all videos for a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+       security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='post',
+    tags=["Teacher Course Vedio"],
+    operation_summary="Add video to course",
+    operation_description="Add a new video to a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    request_body=TeacherVideoSerializer,
+    
+    security=[{'Bearer': []}]
+)
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def teacher_course_videos(request, course_id):
@@ -220,6 +417,56 @@ def teacher_course_videos(request, course_id):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+@swagger_auto_schema(
+    method='get',
+    tags=["Teacher Course Vedio"],
+    operation_summary="Get video details",
+    operation_description="Retrieve details of a specific video belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'video_id',
+            openapi.IN_PATH,
+            description="UUID of the video",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+   security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='put',
+    tags=["Teacher Course Vedio"],
+    operation_summary="Update video details",
+    operation_description="Update details of a specific video belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'video_id',
+            openapi.IN_PATH,
+            description="UUID of the video",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    request_body=TeacherVideoSerializer,
+   security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='delete',
+    tags=["Teacher Course Vedio"],
+    operation_summary="Delete a video",
+    operation_description="Delete a specific video belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'video_id',
+            openapi.IN_PATH,
+            description="UUID of the video",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+     security=[{'Bearer': []}]
+)
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def teacher_video_detail(request, video_id):
@@ -276,7 +523,26 @@ def teacher_video_detail(request, video_id):
             'message': 'Video deleted successfully'
         }, status=status.HTTP_200_OK)
 
+# =================================
+# Teacher Get Course student
+# =================================
 
+
+@swagger_auto_schema(
+    method='get',
+    operation_summary="List enrolled students",
+    operation_description="Retrieve all enrolled students for a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+     security=[{'Bearer': []}]
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def teacher_course_students(request, course_id):
@@ -316,6 +582,44 @@ def teacher_course_students(request, course_id):
     }, status=status.HTTP_200_OK)
 
 
+# ==================================
+# Teacher course quize
+# ==================================
+
+
+@swagger_auto_schema(
+    method='get',
+    tags=["Teacher's Course Quize"],
+    operation_summary="List course quizzes",
+    operation_description="Retrieve all quizzes for a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+  security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='post',
+     tags=["Teacher's Course Quize"],
+    operation_summary="Create new quiz",
+    operation_description="Create a new quiz for a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    request_body=TeacherQuizSerializer,
+    security=[{'Bearer': []}]
+)
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def teacher_course_quizzes(request, course_id):
@@ -367,6 +671,56 @@ def teacher_course_quizzes(request, course_id):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 
+
+@swagger_auto_schema(
+    method='get',
+     tags=["Teacher's Course Quize"],
+    operation_summary="Get quiz details",
+    operation_description="Retrieve details of a specific quiz belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'quiz_id',
+            openapi.IN_PATH,
+            description="UUID of the quiz",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+   security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='put',
+     tags=["Teacher's Course Quize"],
+    operation_summary="Update quiz details",
+    operation_description="Update details of a specific quiz belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'quiz_id',
+            openapi.IN_PATH,
+            description="UUID of the quiz",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    request_body=TeacherQuizSerializer,
+  security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='delete',
+     tags=["Teacher's Course Quize"],
+    operation_summary="Delete a quiz",
+    operation_description="Delete a specific quiz belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'quiz_id',
+            openapi.IN_PATH,
+            description="UUID of the quiz",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+ security=[{'Bearer': []}]
+)
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def teacher_quiz_detail(request, quiz_id):
@@ -423,6 +777,55 @@ def teacher_quiz_detail(request, quiz_id):
             'message': 'Quiz deleted successfully'
         }, status=status.HTTP_200_OK)
 
+
+# ====================================
+# Teacher Course Live classes
+# =======================================
+
+
+@swagger_auto_schema(
+    method='get',
+    tags=["Teacher Course Live classes"],
+    operation_summary="List course live classes",
+    operation_description="Retrieve all scheduled live classes for a specific course belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+  security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='post',
+    tags=["Teacher Course Live classes"],
+    operation_summary="Schedule new live class",
+    operation_description="Schedule a new live class for a specific course and notify enrolled students.",
+    manual_parameters=[
+        openapi.Parameter(
+            'course_id',
+            openapi.IN_PATH,
+            description="UUID of the course",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['title', 'scheduled_time'],
+        properties={
+            'title': openapi.Schema(type=openapi.TYPE_STRING),
+            'scheduled_time': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+            'max_participants': openapi.Schema(type=openapi.TYPE_INTEGER),
+            'is_recorded': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+            'waiting_room': openapi.Schema(type=openapi.TYPE_BOOLEAN)
+        }
+    ),
+   security=[{'Bearer': []}]
+)
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def teacher_course_live_classes(request, course_id):
@@ -513,6 +916,56 @@ def teacher_course_live_classes(request, course_id):
         }, status=status.HTTP_201_CREATED)
 
 
+
+@swagger_auto_schema(
+    method='get',
+    tags=["Teacher Course Live classes"],
+    operation_summary="Get live class details",
+    operation_description="Retrieve details of a specific live class belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'class_id',
+            openapi.IN_PATH,
+            description="UUID of the live class",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='put',
+    tags=["Teacher Course Live classes"],
+    operation_summary="Update live class details",
+    operation_description="Update details of a specific live class belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'class_id',
+            openapi.IN_PATH,
+            description="UUID of the live class",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+    request_body=LiveClassSerializer,
+  security=[{'Bearer': []}]
+)
+@swagger_auto_schema(
+    method='delete',
+    tags=["Teacher Course Live classes"],
+    operation_summary="Cancel a live class",
+    operation_description="Cancel a specific live class belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'class_id',
+            openapi.IN_PATH,
+            description="UUID of the live class",
+            type=openapi.TYPE_STRING,
+            format=openapi.FORMAT_UUID
+        )
+    ],
+ security=[{'Bearer': []}]
+)
 @api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def teacher_live_class_detail(request, class_id):

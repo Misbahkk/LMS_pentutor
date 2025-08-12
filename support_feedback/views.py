@@ -10,6 +10,10 @@ from .serializers import (
     TicketReplySerializer, TicketReplyCreateSerializer
 )
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+
 # Support Ticket Views
 class SupportTicketListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -55,6 +59,20 @@ class TeacherFeedbackListCreateView(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 # Ticket Reply View
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Add reply to a support ticket",
+    manual_parameters=[
+        openapi.Parameter(
+            'ticket_id',
+            openapi.IN_PATH,
+            description="UUID of the support ticket",
+            type=openapi.TYPE_INTEGER,
+            required=True
+        )
+    ],
+    request_body=TicketReplyCreateSerializer
+)
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def add_ticket_reply(request, ticket_id):
