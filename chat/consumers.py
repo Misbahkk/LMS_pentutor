@@ -1,6 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from accounts.models import CustomUser
+# from accounts.models import CustomUser
 from rest_framework_simplejwt.tokens import UntypedToken
 from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async

@@ -110,7 +110,7 @@ class StudentProfile(models.Model):
     is_active = models.BooleanField(default=True)
     
     # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True,blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -158,11 +158,11 @@ class TeacherProfile(models.Model):
 
     # Professional Information
     employee_id = models.CharField(max_length=100, blank=True, null=True)
-    headline = models.CharField(max_length=200)
+    headline = models.CharField(max_length=200,null=True,blank=True)
     expertise_areas = models.JSONField(default=list)
-    expertise_level = models.CharField(max_length=20, choices=EXPERTISE_LEVELS)
+    expertise_level = models.CharField(max_length=20, choices=EXPERTISE_LEVELS,default='expert')
     years_of_experience = models.PositiveIntegerField(default=0)
-    employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE)
+    employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_TYPE,default='part_time')
     department = models.CharField(max_length=100, blank=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
@@ -207,7 +207,7 @@ class TeacherProfile(models.Model):
     average_response_time = models.DurationField(null=True, blank=True)
     
     # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True,null=True,blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from authentication.models import TeacherProfile,StudentProfile
-from courses.models import Course, Video, Quiz, Assignment, Enrollment, Teacher
+from courses.models import Course, Video, Quiz, Assignment, Enrollment
 from courses.serializers import CourseListSerializer, VideoDetailSerializer, QuizSerializer, AssignmentSerializer
 from .serializers import TeacherCourseSerializer, TeacherVideoSerializer, TeacherQuizSerializer, EnrolledStudentSerializer,LiveClassSerializer
 from meetings.models import Meeting
@@ -71,6 +71,8 @@ def teacher_courses(request):
     """
     Get teacher's courses or create new course
     """
+    print(request.user.id, request.user.username)
+    print(TeacherProfile.objects.values_list("user_id", "full_name"))
     if request.user.role != 'teacher':
         return Response({
             'success': False,
@@ -78,8 +80,8 @@ def teacher_courses(request):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
-    except Teacher.DoesNotExist:
+        teacher = TeacherProfile.objects.get(user=request.user)
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -123,9 +125,9 @@ def teacher_course_detail(request, course_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
         course = Course.objects.get(id=course_id, teacher=teacher)
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -180,9 +182,9 @@ def teacher_course_videos(request, course_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
         course = Course.objects.get(id=course_id, teacher=teacher)
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -231,9 +233,9 @@ def teacher_video_detail(request, video_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
         video = Video.objects.get(id=video_id, course__teacher=teacher)
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -288,9 +290,9 @@ def teacher_course_students(request, course_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
         course = Course.objects.get(id=course_id, teacher=teacher)
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -327,9 +329,9 @@ def teacher_course_quizzes(request, course_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
         course = Course.objects.get(id=course_id, teacher=teacher)
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -378,9 +380,9 @@ def teacher_quiz_detail(request, quiz_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
         quiz = Quiz.objects.get(id=quiz_id, course__teacher=teacher)
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -434,9 +436,9 @@ def teacher_course_live_classes(request, course_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
         course = Course.objects.get(id=course_id, teacher=teacher)
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
@@ -524,14 +526,14 @@ def teacher_live_class_detail(request, class_id):
         }, status=status.HTTP_403_FORBIDDEN)
     
     try:
-        teacher = Teacher.objects.get(user=request.user)
+        teacher = TeacherProfile.objects.get(user=request.user)
 
         live_class = Meeting.objects.get(
             id=class_id, 
             course__teacher=teacher,
             meeting_type='lecture'
         )
-    except Teacher.DoesNotExist:
+    except TeacherProfile.DoesNotExist:
         return Response({
             'success': False,
             'message': 'Teacher profile not found'
