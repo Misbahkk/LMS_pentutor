@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
 from django.db import models
-
+from notifications.models import Notification
 from authentication.models import User,TeacherProfile,StudentProfile
 from authentication.serializers import UserSerializer
 from courses.models import Course, Teacher, Enrollment
@@ -15,7 +15,7 @@ from courses.serializers import CourseListSerializer
 from payments.models import Payment
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-
+import uuid
 
 @swagger_auto_schema(
     method='get',
@@ -154,6 +154,126 @@ def admin_users_list(request):
         }
     }, status=status.HTTP_200_OK)
 
+# ========================
+# Approve/reject Teacher Profile
+# ==================================
+@swagger_auto_schema(
+    method='put',
+    operation_summary="Review Teacher/Student Profile (Admin only)",
+    manual_parameters=[
+        openapi.Parameter('profile_type', openapi.IN_QUERY, description="Type of profile (student/teacher)", type=openapi.TYPE_STRING),
+        openapi.Parameter('profile_id', openapi.IN_QUERY, description="Profile ID to review", type=openapi.TYPE_STRING,format='uuid')
+    ],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'action': openapi.Schema(type=openapi.TYPE_STRING, description="approve or reject")
+        },
+        required=['action']
+    ),
+    responses={200: "Profile reviewed successfully"}
+)
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def admin_review_profile(request):
+    """Approve or reject teacher/student profiles (Admin only)"""
+    if request.user.role != 'admin':
+        return Response({
+            'success': False,
+            'message': 'Access denied. Admin privileges required.'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    profile_type = request.query_params.get('profile_type')
+    profile_id = request.query_params.get('profile_id')
+    action = request.data.get('action')
+
+    if profile_type not in ['student', 'teacher']:
+        return Response({'success': False, 'message': 'Invalid profile type'}, status=400)
+    if action not in ['approve', 'reject']:
+        return Response({'success': False, 'message': 'Invalid action'}, status=400)
+
+    
+    try:
+        profile_uuid = uuid.UUID(profile_id)
+        user_obj = User.objects.get(id=profile_uuid)
+    except User.DoesNotExist:
+        return Response({'success': False, 'message': 'Profile not found'}, status=404)
+
+     # Update status on the actual profile model
+    if profile_type == 'student':
+        profile = StudentProfile.objects.get(user=user_obj)
+    else:
+        profile = TeacherProfile.objects.get(user=user_obj)
+    # Update status
+    profile.status = 'approved' if action == 'approve' else 'rejected'
+    profile.save()
+
+    # Also update user role if approved
+    if action == 'approve':
+        user_obj.role = profile_type
+        user_obj.save()
+
+    # Send notification to the user
+    Notification.objects.create(
+        recipient=profile.user,
+        sender=request.user,
+        notification_type='general',
+        title=f"Your {profile_type} profile has been {profile.status}",
+        message=f"Admin has {profile.status} your {profile_type} profile."
+    )
+
+    return Response({
+        'success': True,
+        'message': f'{profile_type.title()} profile {profile.status} successfully'
+    }, status=200)
+
+@swagger_auto_schema(
+    method='get',
+    operation_summary="Get pending teacher or student profiles (Admin only)",
+    # manual_parameters=[
+    #     openapi.Parameter('profile_type', openapi.IN_QUERY, description="Type of profile (student/teacher)", type=openapi.TYPE_STRING)
+    # ],
+    responses={200: "List of pending profiles"}
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def admin_pending_profiles_list(request):
+    """
+    Get all pending teacher or student profiles (Admin only)
+    """
+    if request.user.role not in ['admin', 'subadmin']:
+        return Response({
+            'success': False,
+            'message': 'Access denied. Admin privileges required.'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    # profile_type = request.query_params.get('profile_type')
+
+    # if profile_type not in ['student', 'teacher']:
+    #     return Response({
+    #         'success': False,
+    #         'message': "Invalid or missing profile_type. Use 'student' or 'teacher'."
+    #     }, status=status.HTTP_400_BAD_REQUEST)
+
+    # model = StudentProfile if profile_type == 'student' else TeacherProfile
+    model = TeacherProfile
+    profiles = model.objects.filter(status='pending').select_related('user')
+
+    data = []
+    for profile in profiles:
+        user_data = UserSerializer(profile.user).data
+        data.append({
+            'profile_id': profile.id,
+            'user': user_data,
+            'status': profile.status,
+            'created_at': profile.created_at if hasattr(profile, 'created_at') else None
+        })
+
+    return Response({
+        'success': True,
+        'total_pending': len(data),
+        'profiles': data
+    }, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
     method='put',

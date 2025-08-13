@@ -182,7 +182,7 @@ class TeacherProfile(models.Model):
     publications = models.JSONField(default=list)
     
     # Course Related
-    courses_created = models.ManyToManyField('courses.Course', related_name='instructors')
+    courses_created = models.ManyToManyField('courses.Course', related_name='instructors',blank=True)
     total_courses = models.PositiveIntegerField(default=0)
     total_students = models.PositiveIntegerField(default=0)
     average_rating = models.FloatField(

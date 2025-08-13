@@ -7,6 +7,7 @@ from courses.models import Video, Quiz, Enrollment
 from meetings.models import Meeting
 from payments.models import Payment
 from .models import Notification
+from authentication.models import TeacherProfile,StudentProfile
 
 User = get_user_model()
 
@@ -194,3 +195,32 @@ def notify_enrollment_direct(sender, instance, created, **kwargs):
         # Bulk create notifications
         if notifications_to_create:
             Notification.objects.bulk_create(notifications_to_create)
+
+
+
+
+def send_admin_notification(sender, instance, role_type):
+    """Send notification + email to all admins"""
+    admins = User.objects.filter(is_superuser=True)
+    for admin in admins:
+        # Create Notification
+        Notification.objects.create(
+            recipient=admin,
+            sender=instance.user,
+            notification_type=role_type,
+            title=f"New {role_type.replace('_', ' ').title()}",
+            message=f"{instance.user.username} has requested to become a {role_type.split('_')[0]}."
+        )
+
+
+
+@receiver(post_save, sender=StudentProfile)
+def student_role_request_created(sender, instance, created, **kwargs):
+    if created:
+        send_admin_notification(sender, instance, "student_request")
+
+
+@receiver(post_save, sender=TeacherProfile)
+def teacher_role_request_created(sender, instance, created, **kwargs):
+    if created:
+        send_admin_notification(sender, instance, "teacher_request")

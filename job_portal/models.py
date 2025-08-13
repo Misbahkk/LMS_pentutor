@@ -157,7 +157,7 @@ class JobApplication(models.Model):
         ordering = ['-applied_at']
     
     def __str__(self):
-        return f"{self.applicant.user.get_full_name()} - {self.job.title}"
+        return f"{self.applicant.get_full_name()} - {self.job.title}"
 
 class SavedJob(models.Model):
     job_seeker = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_jobs')

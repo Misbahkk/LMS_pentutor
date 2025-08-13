@@ -30,4 +30,9 @@ urlpatterns = [
     path('admin/course-feedback/', views.AdminCourseFeedbackListView.as_view(), name='admin-course-feedback'),
     path('admin/teacher-feedback/', views.AdminTeacherFeedbackListView.as_view(), name='admin-teacher-feedback'),
 
+    # pending profile lists
+    path('pending-profiles/',views.admin_pending_profiles_list,name='admin_pending_profiles_list'),
+    # Review profile (approve/reject)
+    path('review-profile/',  views.admin_review_profile, name='admin_review_profile' ),
+
 ]

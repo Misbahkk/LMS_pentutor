@@ -5,13 +5,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
-from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.crypto import get_random_string
-from django.contrib.auth.tokens import default_token_generator
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.utils.encoding import force_bytes, force_str
 from django.shortcuts import get_object_or_404
 from .models import User,StudentProfile,TeacherProfile
 from .serializers import (
@@ -24,6 +20,8 @@ from .serializers import (
 )
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+import json
+from rest_framework.parsers import MultiPartParser, FormParser
 
 class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
@@ -374,6 +372,70 @@ class ProfileUpdateView(APIView):
             'message': 'Profile update failed',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)           
+
+
+# =====================
+# request role
+# =====================
+class CreateStudentProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        request_body=StudentProfileSerializer,
+        responses={
+        201: openapi.Response('Registration Successful', StudentProfileSerializer),
+        400: 'Bad Request'
+    }
+    )
+
+    def post(self, request):
+        if hasattr(request.user, 'student_profile'):
+            return Response({"success": False, "message": "Student profile already exists"}, status=400)
+        
+        serializer = StudentProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, email=request.user.email)
+            return Response({"success": True, "message": "Student profile created", "data": serializer.data}, status=201)
+        
+        return Response({"success": False, "errors": serializer.errors}, status=400)
+
+
+class CreateTeacherProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        request_body=TeacherProfileSerializer,
+        responses={
+        201: openapi.Response('Registration Successful', TeacherProfileSerializer),
+        400: 'Bad Request'
+    }
+    )
+    def post(self, request):
+        if hasattr(request.user, 'teacher_profile'):
+            return Response({"success": False, "message": "Teacher profile already exists"}, status=400)
+        
+         # 1️⃣ Parse the JSON string from `data` key in form-data
+        try:
+            data_json = json.loads(request.data.get('data', '{}'))
+        except json.JSONDecodeError:
+            return Response({"success": False, "message": "Invalid JSON in 'data' field"}, status=400)
+        
+        # 2️⃣ Merge files into data dictionary
+        data_json['resume'] = request.FILES.get('resume')
+        data_json['degree_certificates'] = request.FILES.get('degree_certificates')
+        data_json['id_proof'] = request.FILES.get('id_proof')
+
+        # 3️⃣ Inject user and email
+        data_json['user'] = request.user
+        data_json['full_name'] = f"{request.user.first_name} {request.user.last_name}"
+        data_json['email'] = request.user.email
+        data_json['status'] = "pending"
+
+
+        serializer = TeacherProfileSerializer(data=data_json)
+        if serializer.is_valid():
+            serializer.save(user=request.user, email=request.user.email, status="pending")  # pending approval
+            return Response({"success": True, "message": "Teacher profile submitted for approval", "data": serializer.data}, status=201)
+        
+        return Response({"success": False, "errors": serializer.errors}, status=400)
 
 # ===================================
 # Admin Content
