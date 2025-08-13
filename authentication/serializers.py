@@ -11,7 +11,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'password_confirm', 'first_name', 'last_name','role', 'age', 'city', 'country', 'gender']
+        fields = ['username', 'email', 'password', 'password_confirm', 'first_name', 'last_name', 'age', 'city', 'country', 'gender']
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
@@ -123,6 +123,10 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
     course_categories = serializers.JSONField(required=True)
     notification_preferences = serializers.JSONField(required=False)
     social_links = serializers.JSONField(required=False)
+    additional_documents = serializers.JSONField(required=False)
+    resume = serializers.FileField(required=False)
+    degree_certificates = serializers.FileField(required=False)
+    id_proof = serializers.FileField(required=False)
 
     class Meta:
         model = TeacherProfile

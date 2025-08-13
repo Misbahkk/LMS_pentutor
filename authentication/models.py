@@ -8,6 +8,7 @@ from django.conf import settings
 
 class User(AbstractUser):
     USER_ROLES = [
+        ('user','User'),
         ('student', 'Student'),
         ('teacher', 'Teacher'),
         ('admin', 'Admin'),
@@ -16,7 +17,7 @@ class User(AbstractUser):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=20, choices=USER_ROLES, default='student')
+    role = models.CharField(max_length=20, choices=USER_ROLES, default='user')
     is_verified = models.BooleanField(default=False)
     verification_token = models.CharField(max_length=100, blank=True, null=True)
     age = models.PositiveIntegerField(null=True, blank=True)
@@ -139,6 +140,12 @@ class TeacherProfile(models.Model):
         ('contract', 'Contract'),
         ('freelance', 'Freelance')
     ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected')
+    ]
+
 
     # Base Information
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='teacher_profile')
@@ -166,6 +173,11 @@ class TeacherProfile(models.Model):
     department = models.CharField(max_length=100, blank=True)
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
+    # Documents
+    resume = models.FileField(upload_to='teacher_documents/resumes/', null=True, blank=True)
+    degree_certificates = models.FileField(upload_to='teacher_documents/degrees/', null=True, blank=True)
+    id_proof = models.FileField(upload_to='teacher_documents/id_proofs/', null=True, blank=True)    
+
     # Qualifications
     education = models.JSONField(default=list)
     certifications = models.JSONField(default=list)
@@ -196,7 +208,10 @@ class TeacherProfile(models.Model):
     course_categories = models.JSONField(default=list)
     notification_preferences = models.JSONField(default=dict)
     is_active = models.BooleanField(default=True)
-    
+    # Status and Approval
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    rejection_reason = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
     # Statistics
     total_course_hours = models.PositiveIntegerField(default=0)
     total_students_helped = models.PositiveIntegerField(default=0)
@@ -217,4 +232,5 @@ class TeacherProfile(models.Model):
         indexes = [
             models.Index(fields=['expertise_level', 'years_of_experience']),
             models.Index(fields=['average_rating']),
+             models.Index(fields=['status']),
         ]
