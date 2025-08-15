@@ -388,11 +388,15 @@ class CreateStudentProfileView(APIView):
     )
 
     def post(self, request):
-        if hasattr(request.user, 'student_profile'):
-            return Response({"success": False, "message": "Student profile already exists"}, status=400)
-        
-        serializer = StudentProfileSerializer(data=request.data)
+        student_profile, created = StudentProfile.objects.get_or_create(
+        user=request.user,
+        defaults={"email": request.user.email}
+    )
+            
+        serializer = StudentProfileSerializer(student_profile,data=request.data,partial=True)
         if serializer.is_valid():
+            request.user.role = 'student'
+            request.user.save(update_fields=["role"])
             serializer.save(user=request.user, email=request.user.email)
             return Response({"success": True, "message": "Student profile created", "data": serializer.data}, status=201)
         

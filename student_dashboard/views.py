@@ -14,6 +14,7 @@ from payments.models import Payment
 from email_automation.tasks import send_enrollment_email
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from authentication.models import StudentProfile
 
 
 @swagger_auto_schema(
@@ -183,11 +184,14 @@ def enroll_in_course(request, course_id):
     student = request.user
     
     try:
+        student_profile = StudentProfile.objects.get(user=request.user)
+        print("Studnet: ",student_profile.full_name)
+
         course = Course.objects.get(id=course_id, is_active=True)
         
         # Check if already enrolled
         existing_enrollment = Enrollment.objects.filter(
-            student=student,
+            student=student_profile,
             course=course
         ).first()
         
@@ -213,7 +217,7 @@ def enroll_in_course(request, course_id):
         
         # Create enrollment
         enrollment = Enrollment.objects.create(
-            student=student,
+            student=student_profile,
             course=course
         )
         send_enrollment_email(
@@ -231,6 +235,12 @@ def enroll_in_course(request, course_id):
                 'enrolled_at': enrollment.enrolled_at
             }
         }, status=status.HTTP_201_CREATED)
+    
+    except StudentProfile.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Student profile not found'
+        }, status=status.HTTP_404_NOT_FOUND)
         
     except Course.DoesNotExist:
         return Response({
