@@ -6,15 +6,24 @@ from authentication.models import User,TeacherProfile,StudentProfile
 from support_feedback.models import CourseFeedback
 
 
+
 class TeacherSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     profile_picture = serializers.SerializerMethodField()
+    email = serializers.EmailField(read_only=True)
+    expertise_areas = serializers.JSONField(required=True)
+    education = serializers.JSONField(required=True)
+    languages_spoken = serializers.JSONField(required=True)
+    availability_schedule = serializers.JSONField(required=True)
+    preferred_teaching_methods = serializers.JSONField(required=True)
+    course_categories = serializers.JSONField(required=True)
     
     class Meta:
         model = TeacherProfile
-        fields = ['id', 'username', 'first_name', 'last_name', 'bio', 'profile_picture']
+        fields = ['id', 'username', 'first_name', 'last_name', 'bio', 'profile_picture','email','expertise_areas','education'
+                  ,'languages_spoken','availability_schedule','preferred_teaching_methods','course_categories']
     
     def get_profile_picture(self, obj):
         if obj.profile_picture:
