@@ -333,7 +333,7 @@ class ProfileUpdateView(APIView):
                 'message': 'Invalid user role or profile not found'
             }, status=status.HTTP_404_NOT_FOUND)
         
-        serializer = serializer_class(profile, data=request.data)
+        serializer = serializer_class(profile, data=request.data,partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({
@@ -347,6 +347,10 @@ class ProfileUpdateView(APIView):
             'message': 'Profile update failed',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @swagger_auto_schema(
+    request_body=StudentProfileSerializer,  # or TeacherProfileSerializer dynamically
+    responses={200: 'Profile updated successfully', 400: 'Validation Error'})
     
     def patch(self, request):
         """Partially update the profile."""

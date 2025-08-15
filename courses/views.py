@@ -8,6 +8,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from rest_framework.permissions import   AllowAny
 from django.db.models import Count
+
+from support_feedback.models import CourseFeedback
+from django.db.models import Prefetch
 from .models import Course, Video, Quiz, Assignment
 from .serializers import (
     CourseListSerializer, CourseDetailSerializer, VideoDetailSerializer,
@@ -54,6 +57,8 @@ class CourseListView(ListAPIView):
             ).order_by('-enrollment_count')[:6]
 
         return queryset
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def course_detail(request, course_id):
@@ -62,10 +67,9 @@ def course_detail(request, course_id):
     """
     try:
         course = Course.objects.select_related('teacher__user').prefetch_related(
-            'videos', 'quizzes', 'assignments'
-        ).get(id=course_id, is_active=True)
+            'videos', 'quizzes', 'assignments', 'reviews'    ).get(id=course_id, is_active=True)
         
-        serializer = CourseDetailSerializer(course)
+        serializer = CourseDetailSerializer(course,context = {'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
         
     except Course.DoesNotExist:
