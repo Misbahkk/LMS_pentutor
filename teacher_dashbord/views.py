@@ -1034,3 +1034,6 @@ def teacher_live_class_detail(request, class_id):
             'success': True,
             'message': 'Live class deleted successfully'
         }, status=status.HTTP_200_OK)
+    
+
+    

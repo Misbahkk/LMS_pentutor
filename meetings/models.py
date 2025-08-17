@@ -10,6 +10,7 @@ import uuid
 import random
 import string
 
+
 class Meeting(models.Model):
     MEETING_STATUS = [
         ('waiting', 'Waiting Room'),
@@ -41,6 +42,9 @@ class Meeting(models.Model):
     is_recorded = models.BooleanField(default=False)
     recording_url = models.URLField(blank=True, null=True)
     recording_duration = models.CharField(max_length=10, blank=True)  # Format: "10:30"
+
+    # Admin control
+    allow_student_recording_access = models.BooleanField(default=False)
     
     # Meeting Settings
     max_participants = models.IntegerField(default=100)
