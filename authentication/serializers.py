@@ -73,40 +73,40 @@ class StudentProfileSerializer(serializers.ModelSerializer):
             'average_course_rating'
         ]
 
-    def validate_skills(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Skills must be a list")
-        return value
+    # def validate_skills(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Skills must be a list")
+    #     return value
 
-    def validate_interests(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Interests must be a list")
-        return value
+    # def validate_interests(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Interests must be a list")
+    #     return value
 
-    def validate_certificates(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Certificates must be a list")
-        return value
+    # def validate_certificates(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Certificates must be a list")
+    #     return value
 
-    def validate_social_links(self, value):
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Social links must be a dictionary")
-        return value
+    # def validate_social_links(self, value):
+    #     if not isinstance(value, dict):
+    #         raise serializers.ValidationError("Social links must be a dictionary")
+    #     return value
 
-    def validate_preferred_learning_time(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Preferred learning time must be a list")
-        return value
+    # def validate_preferred_learning_time(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Preferred learning time must be a list")
+    #     return value
 
-    def validate_notification_preferences(self, value):
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Notification preferences must be a dictionary")
-        return value
+    # def validate_notification_preferences(self, value):
+    #     if not isinstance(value, dict):
+    #         raise serializers.ValidationError("Notification preferences must be a dictionary")
+    #     return value
 
-    def validate_language_preferences(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Language preferences must be a list")
-        return value
+    # def validate_language_preferences(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Language preferences must be a list")
+    #     return value
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
@@ -139,60 +139,60 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
             'average_response_time'
         ]
 
-    def validate_expertise_areas(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Expertise areas must be a list")
-        return value
+    # def validate_expertise_areas(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Expertise areas must be a list")
+    #     return value
 
-    def validate_education(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Education must be a list")
-        for edu in value:
-            if not isinstance(edu, dict) or not all(k in edu for k in ['degree', 'institution', 'year']):
-                raise serializers.ValidationError("Each education entry must contain degree, institution, and year")
-        return value
+    # def validate_education(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Education must be a list")
+    #     for edu in value:
+    #         if not isinstance(edu, dict) or not all(k in edu for k in ['degree', 'institution', 'year']):
+    #             raise serializers.ValidationError("Each education entry must contain degree, institution, and year")
+    #     return value
 
-    def validate_certifications(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Certifications must be a list")
-        return value
+    # def validate_certifications(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Certifications must be a list")
+    #     return value
 
-    def validate_awards(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Awards must be a list")
-        return value
+    # def validate_awards(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Awards must be a list")
+    #     return value
 
-    def validate_publications(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Publications must be a list")
-        return value
+    # def validate_publications(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Publications must be a list")
+    #     return value
 
-    def validate_languages_spoken(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Languages spoken must be a list")
-        return value
+    # def validate_languages_spoken(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Languages spoken must be a list")
+    #     return value
 
-    def validate_availability_schedule(self, value):
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Availability schedule must be a dictionary")
-        return value
+    # def validate_availability_schedule(self, value):
+    #     if not isinstance(value, dict):
+    #         raise serializers.ValidationError("Availability schedule must be a dictionary")
+    #     return value
 
-    def validate_preferred_teaching_methods(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Preferred teaching methods must be a list")
-        return value
+    # def validate_preferred_teaching_methods(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Preferred teaching methods must be a list")
+    #     return value
 
-    def validate_course_categories(self, value):
-        if not isinstance(value, list):
-            raise serializers.ValidationError("Course categories must be a list")
-        return value
+    # def validate_course_categories(self, value):
+    #     if not isinstance(value, list):
+    #         raise serializers.ValidationError("Course categories must be a list")
+    #     return value
 
-    def validate_notification_preferences(self, value):
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Notification preferences must be a dictionary")
-        return value
+    # def validate_notification_preferences(self, value):
+    #     if not isinstance(value, dict):
+    #         raise serializers.ValidationError("Notification preferences must be a dictionary")
+    #     return value
 
-    def validate_social_links(self, value):
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("Social links must be a dictionary")
-        return value
+    # def validate_social_links(self, value):
+    #     if not isinstance(value, dict):
+    #         raise serializers.ValidationError("Social links must be a dictionary")
+    #     return value

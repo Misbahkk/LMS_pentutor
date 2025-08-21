@@ -11,7 +11,8 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from support_feedback.models import CourseFeedback
 from django.db.models import Prefetch
-from .models import Course, Video, Quiz, Assignment
+from .models import Course, Video, Quiz, Assignment,Enrollment
+from meetings.models import Meeting
 from .serializers import (
     CourseListSerializer, CourseDetailSerializer, VideoDetailSerializer,
     QuizSerializer, AssignmentSerializer,TeacherSerializer
@@ -199,12 +200,20 @@ def view_teacher_profile(request, teacher_id):
     View details of a specific teacher profile.
     """
     try:
-        teacher_profile = get_object_or_404(
+        teacher = get_object_or_404(
             TeacherProfile.objects.select_related('user'),
             id=teacher_id,  # or user__id=teacher_id depending on your needs
             user__role='teacher'
         )
-        serializer = TeacherSerializer(teacher_profile,context={'request':request})
+        serializer = TeacherSerializer(teacher,context={'request':request})
+        # courses = Course.objects.filter(teacher=teacher)
+        # total_courses = courses.count()
+        # active_courses = courses.filter(is_active=True).count()
+        # total_students = Enrollment.objects.filter(course__teacher=teacher).count()
+        # total_videos = Video.objects.filter(course__teacher=teacher).count()
+        # total_quizzes = Quiz.objects.filter(course__teacher=teacher).count()
+        # total_live_classes = Meeting.objects.filter(course__teacher=teacher, meeting_type='lecture').count()
+
         return Response(serializer.data, status=status.HTTP_200_OK)
         
     except TeacherProfile.DoesNotExist:

@@ -119,3 +119,7 @@ class LiveClassSerializer(serializers.ModelSerializer):
     
     def get_can_join(self, obj):
         return obj.status in ['waiting', 'active']
+    
+
+
+    

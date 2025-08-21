@@ -2,7 +2,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from .serializers import (
     MeetingSerializer, ParticipantSerializer, CreateMeetingSerializer,
     JoinMeetingSerializer, 
@@ -380,7 +380,7 @@ def create_meeting(request):
 @permission_classes([IsAuthenticated])
 def join_meeting(request, meeting_id):
     """Join an existing meeting with access control"""
-    serializer = JoinMeetingSerializer(data=request.data)
+    serializer = JoinMeetingSerializer(data=request.data,context={'request':request})
     
     if not serializer.is_valid():
         return Response(
@@ -504,10 +504,10 @@ def join_meeting(request, meeting_id):
             }
         )
         
-        if not created and participant.is_active:
-            return Response({
-                'error': 'You are already in this meeting'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # if not created and participant.is_active:
+        #     return Response({
+        #         'error': 'You are already in this meeting'
+        #     }, status=status.HTTP_400_BAD_REQUEST)
         
         # Rejoin if previously left
         if not created:
@@ -524,7 +524,7 @@ def join_meeting(request, meeting_id):
         
         return Response({
             'participant': ParticipantSerializer(participant).data,
-            'meeting': MeetingSerializer(meeting).data,
+            'meeting': MeetingSerializer(meeting,context={'request': request}).data,
             'message': 'Successfully joined meeting'
         }, status=status.HTTP_200_OK)
         
@@ -809,6 +809,100 @@ def end_meeting(request, meeting_id):
         }, status=status.HTTP_403_FORBIDDEN)
 
 
+
+
+@swagger_auto_schema(
+    method='get',
+    operation_summary="Get live class details",
+    operation_description="Retrieve details of a specific live class belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'meeting_id',
+            openapi.IN_PATH,
+            description="UUID of the live class",
+            type=openapi.TYPE_INTEGER
+           
+        )
+    ],
+    security=[{'Bearer': []}]
+)
+
+@swagger_auto_schema(
+    method='delete',
+    operation_summary="Cancel a live class",
+    operation_description="Cancel a specific live class belonging to the authenticated teacher.",
+    manual_parameters=[
+        openapi.Parameter(
+            'meeting_id',
+            openapi.IN_PATH,
+            description="UUID of the live class",
+            type=openapi.TYPE_INTEGER
+        
+        )
+    ],
+ security=[{'Bearer': []}]
+)
+@api_view(['GET', 'DELETE'])
+@permission_classes([AllowAny])
+def meting_detail(request, meeting_id):
+    """
+    Get, update or delete specific live class
+    """
+    
+    
+    try:
+        # teacher = TeacherProfile.objects.get(user=request.user)
+
+        live_class = Meeting.objects.get(
+            id=meeting_id, 
+        )
+   
+    except Meeting.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Meeting class not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = MeetingSerializer(live_class,context={"request":request})
+        return Response({
+            'success': True,
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    # elif request.method == 'PUT':
+    #     # Update live class details
+    #     allowed_fields = ['title', 'scheduled_time', 'max_participants', 'is_recorded']
+    #     for field in allowed_fields:
+    #         if field in request.data:
+    #             setattr(live_class, field, request.data[field])
+        
+    #     live_class.save()
+        
+      
+    #     serializer = LiveClassSerializer(live_class)
+    #     return Response({
+    #         'success': True,
+    #         'message': 'Live class updated successfully',
+    #         'data': serializer.data
+    #     }, status=status.HTTP_200_OK)
+    
+    elif request.method == 'DELETE':
+        if live_class.status == 'active':
+            return Response({
+                'success': False,
+                'message': 'Cannot delete active live class'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        live_class.delete()
+        return Response({
+            'success': True,
+            'message': 'Meeting deleted successfully'
+        }, status=status.HTTP_200_OK)
+    
+
+    
+
 @swagger_auto_schema(
     method='get',
     operation_summary="Get list of participants in a meeting",
@@ -929,6 +1023,7 @@ def notify_participant_joined(meeting_id, participant, user):
 
 
 def send_meeting_invitation(invite):
+
     """Send email invitation (implement based on your email service)"""
     try:
         subject = f'You are invited to join "{invite.meeting.title}"'

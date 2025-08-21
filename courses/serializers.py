@@ -4,13 +4,26 @@ from rest_framework import serializers
 from .models import Course, Video, Quiz, Assignment, Enrollment, Progress
 from authentication.models import User,TeacherProfile,StudentProfile
 from support_feedback.models import CourseFeedback
+from support_feedback.models import TeacherFeedback
+from support_feedback.serializers import TeacherFeedbackSerializer
 
+class CourseSerializer(serializers.ModelSerializer):
+    total_students = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Course
+        fields = ['id', 'title', 'description', 'price', 'total_students']
+
+    def get_total_students(self, obj):
+        if hasattr(obj, 'enrolled_students'):
+            return obj.enrolled_students.count()
+        return 0
 
 class TeacherSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
+   
     profile_picture = serializers.SerializerMethodField()
     email = serializers.EmailField(read_only=True)
     expertise_areas = serializers.JSONField(required=True)
@@ -19,16 +32,32 @@ class TeacherSerializer(serializers.ModelSerializer):
     availability_schedule = serializers.JSONField(required=True)
     preferred_teaching_methods = serializers.JSONField(required=True)
     course_categories = serializers.JSONField(required=True)
+    total_courses = serializers.SerializerMethodField()
+    total_students = serializers.SerializerMethodField()
+    feedbacks = TeacherFeedbackSerializer(many=True, read_only=True)
+    courses_created = CourseSerializer(many=True, read_only=True)
     
     class Meta:
         model = TeacherProfile
-        fields = ['id', 'username', 'first_name', 'last_name', 'bio', 'profile_picture','email','expertise_areas','education'
-                  ,'languages_spoken','availability_schedule','preferred_teaching_methods','course_categories']
+        fields = ['id', 'username', 'first_name', 'last_name','age', 'bio', 'gender','date_of_birth','phone','address','city','country','headline','expertise_level','years_of_experience','employment_type','department',
+                  'hourly_rate','total_courses','total_students','average_rating','teaching_style','courses_created','profile_picture','email','expertise_areas','education'
+                  ,'languages_spoken','availability_schedule','preferred_teaching_methods','course_categories','feedbacks','created_at']
     
     def get_profile_picture(self, obj):
         if obj.profile_picture:
             return self.context['request'].build_absolute_uri(obj.profile_picture.url)
         return None
+    
+    def get_total_courses(self, obj):
+        return obj.courses_created.count()
+
+    def get_total_students(self, obj):
+        # assume har course me enrolled_students M2M field hoga
+        students = set()
+        for course in obj.courses_created.all():
+            if hasattr(course, 'enrolled_students'):
+                students.update(course.enrolled_students.values_list('id', flat=True))
+        return len(students)
 
 
 class VideoSerializer(serializers.ModelSerializer):

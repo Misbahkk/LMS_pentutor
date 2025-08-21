@@ -47,7 +47,9 @@ class JobPostCreateView(generics.CreateAPIView):
     """
     queryset = JobPost.objects.all()
     serializer_class = JobPostCreateSerializer
+    print("ok")
     permission_classes = [IsAuthenticated, IsStudentUser]
+    print("studentUser")
 
     def create(self, request, *args, **kwargs):
         try:
@@ -132,7 +134,7 @@ class JobApplicationListView(generics.ListAPIView):
     List applications for a specific job post. Only job owner can see this.
     """
     serializer_class = JobApplicationBasicSerializer
-    permission_classes = [IsAuthenticated, IsStudentUser]
+    permission_classes = [IsAuthenticated, IsStudentOrTeacher]
 
     def get_queryset(self):
         job_post = get_object_or_404(JobPost, id=self.kwargs['job_id'])

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
      'email_automation',
      'job_board',
      'support_feedback',
+     'individual_live_class',
      'drf_yasg'
      
 ]
