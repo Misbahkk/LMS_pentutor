@@ -37,13 +37,21 @@ class StudentBasicSerializer(serializers.ModelSerializer):
 class TeacherBasicSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
     full_name = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
     
     class Meta:
         model = TeacherProfile
-        fields = ['id', 'username', 'full_name']
+        fields = ['id', 'username', 'full_name','profile_picture']
     
     def get_full_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}".strip()
+    
+    def get_profile_picture(self, obj):
+        request = self.context.get('request')
+        if obj.profile_picture:
+            # Return absolute URL for frontend usage
+            return request.build_absolute_uri(obj.profile_picture.url) if request else obj.profile_picture.url
+        return None
 
 
 class JobPostCreateSerializer(serializers.ModelSerializer):

@@ -82,6 +82,7 @@ class CourseListSerializer(serializers.ModelSerializer):
     teacher = TeacherSerializer(read_only=True)
     total_videos = serializers.SerializerMethodField()
     total_enrollments = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
     
     class Meta:
         model = Course
@@ -96,6 +97,11 @@ class CourseListSerializer(serializers.ModelSerializer):
     
     def get_total_enrollments(self, obj):
         return obj.get_total_enrollments()
+    
+    def get_thumbnail(self, obj):
+        if obj.thumbnail:
+            return self.context['request'].build_absolute_uri(obj.thumbnail.url)
+        return None
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):
@@ -106,6 +112,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
     total_videos = serializers.SerializerMethodField()
     total_enrollments = serializers.SerializerMethodField()
     reviews = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
     
     class Meta:
         model = Course
@@ -127,6 +134,10 @@ class CourseDetailSerializer(serializers.ModelSerializer):
             feedbacks, many=True, context=self.context
         )
         return serializer.data
+    def get_thumbnail(self, obj):
+        if obj.thumbnail:
+            return self.context['request'].build_absolute_uri(obj.thumbnail.url)
+        return None
 
 
 class VideoDetailSerializer(serializers.ModelSerializer):

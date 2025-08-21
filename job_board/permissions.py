@@ -36,7 +36,7 @@ class IsTeacherUser(permissions.BasePermission):
         if not request.user.is_authenticated:
             return False
         
-        return hasattr(request.user, 'teacherprofile')
+        return hasattr(request.user, 'teacher_profile')
     
     def has_object_permission(self, request, view, obj):
         # For job applications, check if user is the applicant
