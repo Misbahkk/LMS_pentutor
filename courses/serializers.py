@@ -1,7 +1,7 @@
 # course/serializers.py
 
 from rest_framework import serializers
-from .models import Course, Video, Quiz, Assignment, Enrollment, Progress
+from .models import Course, Video, Quiz, Assignment, Enrollment, Progress,Topic
 from authentication.models import User,TeacherProfile,StudentProfile
 from support_feedback.models import CourseFeedback
 from support_feedback.models import TeacherFeedback
@@ -103,8 +103,90 @@ class CourseListSerializer(serializers.ModelSerializer):
             return self.context['request'].build_absolute_uri(obj.thumbnail.url)
         return None
 
+class TopicSerializer(serializers.ModelSerializer):
+    video_count = serializers.SerializerMethodField()
+    total_duration = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Topic
+        fields = [
+            'id', 'title', 'description', 'order', 
+            'video_count', 'total_duration', 'is_active'
+        ]
+    
+    def get_video_count(self, obj):
+        return obj.videos.count()
+    
+    def get_total_duration(self, obj):
+        return obj.get_total_duration()
+
+
+class VideoWithTopicSerializer(serializers.ModelSerializer):
+    topic_title = serializers.CharField(source='topic.title', read_only=True)
+    has_quiz = serializers.SerializerMethodField()
+    has_assignment = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Video
+        fields = [
+            'id', 'title', 'description', 'duration', 'order',
+            'topic_title', 'has_quiz', 'has_assignment', 'is_free_preview'
+        ]
+    
+    def get_has_quiz(self, obj):
+        return obj.quizzes.exists()
+    
+    def get_has_assignment(self, obj):
+        return obj.assignments.exists()
+
+
+class TopicDetailSerializer(serializers.ModelSerializer):
+    videos = VideoWithTopicSerializer(many=True, read_only=True)
+    video_count = serializers.SerializerMethodField()
+    quiz_count = serializers.SerializerMethodField()
+    assignment_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Topic
+        fields = [
+            'id', 'title', 'description', 'order', 'created_at',
+            'videos', 'video_count', 'quiz_count', 'assignment_count'
+        ]
+    
+    def get_video_count(self, obj):
+        return obj.videos.count()
+    
+    def get_quiz_count(self, obj):
+        return obj.quizzes.count()
+    
+    def get_assignment_count(self, obj):
+        return obj.assignments.count()
+
+
+class CourseWithTopicsSerializer(serializers.ModelSerializer):
+    topics = TopicSerializer(many=True, read_only=True)
+    teacher_name = serializers.CharField(source='teacher.user.username', read_only=True)
+    total_videos = serializers.SerializerMethodField()
+    total_topics = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Course
+        fields = [
+            'id', 'title', 'description', 'price', 'course_type',
+            'thumbnail', 'teacher_name', 'total_videos', 'total_topics',
+            'topics', 'created_at', 'has_live_classes'
+        ]
+    
+    def get_total_videos(self, obj):
+        return obj.get_total_videos()
+    
+    def get_total_topics(self, obj):
+        return obj.get_total_topics()
+
+
 
 class CourseDetailSerializer(serializers.ModelSerializer):
+    topics = TopicDetailSerializer(many=True, read_only=True)
     teacher = TeacherSerializer(read_only=True)
     videos = VideoSerializer(many=True, read_only=True)
     quizzes = QuizSerializer(many=True, read_only=True)
@@ -118,7 +200,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'description', 'teacher', 'price', 
-            'course_type', 'thumbnail', 'created_at', 'is_active',
+            'course_type', 'thumbnail', 'topics','created_at', 'is_active',
             'videos', 'quizzes', 'assignments', 'total_videos', 'total_enrollments','reviews'
         ]
     
